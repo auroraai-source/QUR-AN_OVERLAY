@@ -128,31 +128,11 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button id="btn-preview-audio" class="p-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors flex items-center gap-1 shadow-md shadow-emerald-500/30 text-xs font-semibold">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
-                        Tes Suara
-                    </button>
                     <button id="btn-export" class="p-2 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition-colors flex items-center gap-1 shadow-md shadow-pink-500/30 text-xs font-semibold">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                         Export
                     </button>
                 </div>
-            </div>
-
-            <!-- Tab Navigation -->
-            <div class="flex border-b border-gray-200 mt-4 relative">
-                <button class="tab-btn flex-1 py-3 text-sm font-semibold text-emerald-600 border-b-2 border-emerald-500 transition-colors flex justify-center items-center gap-2" data-target="tab-surah">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
-                    Surah
-                </button>
-                <button class="tab-btn flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors flex justify-center items-center gap-2" data-target="tab-studio">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Studio
-                </button>
-                <button class="tab-btn flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors flex justify-center items-center gap-2" data-target="tab-design">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
-                    Desain
-                </button>
             </div>
         </div>
 
@@ -204,11 +184,11 @@
                     <div>
                         <!-- Menggunakan Qari API yang valid -->
                         <select id="qari-select" class="w-full bg-pink-500/10 border border-pink-200 text-gray-800 text-sm rounded-xl focus:ring-pink-500 focus:border-pink-500 block p-3 outline-none">
-                            <option value="ar.alafasy">Mishary Rashid Alafasy</option>
-                            <option value="ar.abdurrahmaansudais">Abdurrahmaan As-Sudais</option>
-                            <option value="ar.abdulbasitmurattal">Abdul Basit (Murattal)</option>
-                            <option value="ar.husary">Mahmoud Khalil Al-Husary</option>
-                            <option value="ar.minshawi">Mohamed Siddiq al-Minshawi</option>
+                            <option value="Alafasy_128kbps">Mishary Rashid Alafasy</option>
+                            <option value="Abdurrahmaan_As-Sudais_192kbps">Abdurrahmaan As-Sudais</option>
+                            <option value="Abdul_Basit_Murattal_192kbps">Abdul Basit (Murattal)</option>
+                            <option value="Husary_128kbps">Mahmoud Khalil Al-Husary</option>
+                            <option value="Minshawy_Murattal_128kbps">Mohamed Siddiq al-Minshawi</option>
                         </select>
                     </div>
                 </div>
@@ -220,9 +200,10 @@
                     <div id="export-area" class="preview-container w-64 md:w-72 relative transition-all duration-300">
                         
                         <!-- Overlay Khusus saat Export berjalan -->
-                        <div id="recording-indicator" class="absolute inset-0 bg-black/60 z-50 hidden flex-col items-center justify-center backdrop-blur-sm">
+                        <div id="recording-indicator" class="absolute inset-0 bg-black/80 z-50 hidden flex-col items-center justify-center backdrop-blur-sm">
                             <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-                            <span class="text-white text-xs font-bold animate-pulse text-center">🔴 MEREKAM VIDEO...<br>Jangan tutup layar ini</span>
+                            <span class="text-white text-sm font-bold animate-pulse text-center">🔴 MEREKAM VIDEO...</span>
+                            <span id="export-progress-text" class="text-emerald-400 text-xs mt-2 font-medium text-center px-4">Memproses...</span>
                         </div>
 
                         <div id="overlay-content" class="absolute inset-0 flex flex-col justify-center px-4 py-8 pointer-events-none transition-all duration-300">
@@ -294,7 +275,7 @@
 
         <!-- Persistent Audio Player at Bottom -->
         <div class="bg-white border-t border-gray-100 px-6 py-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-20">
-            <audio id="audio-player" class="hidden" crossorigin="anonymous"></audio>
+            <audio id="audio-player" class="hidden"></audio>
             
             <div class="flex flex-col gap-3">
                 <div class="flex items-center gap-3 text-[10px] font-medium text-gray-500">
@@ -325,6 +306,22 @@
                     </div>
                     <div class="w-32 flex justify-end"></div>
                 </div>
+            </div>
+
+            <!-- Tab Navigation Dipindah ke Bawah -->
+            <div class="flex border-t border-gray-100 mt-4 pt-2 relative">
+                <button class="tab-btn flex-1 py-2 text-emerald-600 transition-colors flex flex-col justify-center items-center gap-1" data-target="tab-surah">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                    <span class="text-[10px] font-semibold">Surah</span>
+                </button>
+                <button class="tab-btn flex-1 py-2 text-gray-500 hover:text-emerald-500 transition-colors flex flex-col justify-center items-center gap-1" data-target="tab-studio">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span class="text-[10px] font-medium">Studio</span>
+                </button>
+                <button class="tab-btn flex-1 py-2 text-gray-500 hover:text-emerald-500 transition-colors flex flex-col justify-center items-center gap-1" data-target="tab-design">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
+                    <span class="text-[10px] font-medium">Desain</span>
+                </button>
             </div>
         </div>
 
@@ -384,19 +381,27 @@
         const timeTotal = document.getElementById('time-total');
         const nowPlayingText = document.getElementById('now-playing-text');
         
-        const btnPreviewAudio = document.getElementById('btn-preview-audio');
         const btnExport = document.getElementById('btn-export');
+
+        // Helper Error/Pesan
+        function showMessage(msg, isError = false) {
+            statusInfo.innerHTML = `<span class="${isError ? 'text-red-500' : 'text-emerald-600'} font-bold text-[11px] leading-tight block">${msg}</span>`;
+            if (isError) setTimeout(() => { statusInfo.innerHTML = "Sistem siap. Silakan muat ayat di tab Surah."; }, 3500);
+        }
 
         tabBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 tabBtns.forEach(b => {
-                    b.classList.remove('text-emerald-600', 'border-emerald-500');
-                    b.classList.add('text-gray-500', 'border-transparent');
-                    b.style.borderBottomWidth = "2px"; 
+                    b.classList.remove('text-emerald-600');
+                    b.classList.add('text-gray-500');
+                    b.querySelector('span').classList.remove('font-semibold');
+                    b.querySelector('span').classList.add('font-medium');
                 });
                 tabContents.forEach(c => c.classList.remove('active'));
-                btn.classList.remove('text-gray-500', 'border-transparent');
-                btn.classList.add('text-emerald-600', 'border-emerald-500');
+                btn.classList.remove('text-gray-500');
+                btn.classList.add('text-emerald-600');
+                btn.querySelector('span').classList.remove('font-medium');
+                btn.querySelector('span').classList.add('font-semibold');
                 document.getElementById(btn.getAttribute('data-target')).classList.add('active');
             });
         });
@@ -440,11 +445,11 @@
             const includeBismillah = includeBismillahCheckbox.checked;
             const selectedQari = qariSelect.value;
 
-            if (!surahNumber) return alert("Pilih surah terlebih dahulu!");
-            if (start > end) return alert("Ayat awal tidak boleh lebih besar dari ayat akhir!");
+            if (!surahNumber) return showMessage("Pilih surah terlebih dahulu!", true);
+            if (start > end) return showMessage("Ayat awal tidak boleh lebih besar dari ayat akhir!", true);
 
             btnLoad.disabled = true;
-            statusInfo.innerHTML = "Mengambil data teks dari API...";
+            showMessage("Mempersiapkan sistem unduhan...");
             
             try {
                 // Bersihkan memori audio sebelumnya
@@ -466,10 +471,12 @@
                 // Fungsi canggih untuk mengunduh mp3 ke RAM (Agar saat play/karaoke tidak lag sedetik pun)
                 async function fetchAudioBlob(url, ayatObj) {
                     try {
-                        const audioRes = await fetch(url);
+                        const audioRes = await fetch(url, { mode: 'cors' });
                         if (!audioRes.ok) throw new Error("Audio Gagal Diunduh");
                         const blob = await audioRes.blob();
-                        currentAudioList.push(URL.createObjectURL(blob)); // Simpan mp3 ke RAM
+                        // WAJIB: Beri tahu browser bahwa ini adalah file audio MP3 yang sah
+                        const safeBlob = new Blob([blob], { type: 'audio/mpeg' });
+                        currentAudioList.push(URL.createObjectURL(safeBlob)); // Simpan mp3 ke RAM
                         currentAyatData.push(ayatObj);
                     } catch (e) {
                         console.warn("Gagal load blob, fallback ke URL asal", url);
@@ -478,25 +485,31 @@
                     }
                     loadedCount++;
                     btnLoad.innerHTML = `<span class="animate-pulse">Memuat Ayat: ${loadedCount} / ${totalItems}</span>`;
-                    statusInfo.innerHTML = `Mempersiapkan audio... ${Math.round((loadedCount/totalItems)*100)}%`;
+                    showMessage(`Memuat file MP3 ayat ${loadedCount} dari ${totalItems}... <br>Sistem memberikan jeda sesaat agar proses aman.`);
                 }
+
+                // Format nomor ayat untuk EveryAyah (3 digit, contoh: 001002.mp3)
+                const paddedSurah = String(surahNumber).padStart(3, '0');
 
                 // 1. Muat Basmalah
                 if (includeBismillah && surahNumber !== "1" && surahNumber !== "9" && start === 1 && surahData.preBismillah) {
                      await fetchAudioBlob(
-                         `https://cdn.islamic.network/quran/audio/128/${selectedQari}/1.mp3`,
+                         `https://everyayah.com/data/${selectedQari}/001001.mp3`,
                          {
                              text: surahData.preBismillah.text.arab,
                              translationId: "Dengan menyebut nama Allah Yang Maha Pengasih lagi Maha Penyayang.",
                              verseNumber: 0
                          }
                      );
+                     // Jeda awal
+                     await new Promise(r => setTimeout(r, 3500));
                 }
 
                 // 2. Muat Setiap Ayat
                 for (let i = 0; i < verses.length; i++) {
                     const v = verses[i];
-                    const audioUrl = `https://cdn.islamic.network/quran/audio/128/${selectedQari}/${v.number.inQuran}.mp3`;
+                    const paddedAyat = String(v.number.inSurah).padStart(3, '0');
+                    const audioUrl = `https://everyayah.com/data/${selectedQari}/${paddedSurah}${paddedAyat}.mp3`;
 
                     await fetchAudioBlob(
                          audioUrl,
@@ -506,6 +519,11 @@
                              verseNumber: v.number.inSurah
                          }
                     );
+                    
+                    // JEDA 3.5 DETIK ANTAR AYAT UNTUK MENGHINDARI RATE LIMIT API
+                    if (i < verses.length - 1) {
+                        await new Promise(r => setTimeout(r, 3500)); 
+                    }
                 }
 
                 btnLoad.innerHTML = `Menyusun Tampilan...`;
@@ -611,7 +629,7 @@
         }
 
         function togglePlay() {
-            if (currentAudioList.length === 0) return alert("Muat data ayat terlebih dahulu!");
+            if (currentAudioList.length === 0) return showMessage("Muat data ayat terlebih dahulu!", true);
             
             if (audioPlayer.paused) {
                 playSafe();
@@ -623,7 +641,6 @@
         }
 
         btnPlay.addEventListener('click', togglePlay);
-        btnPreviewAudio.addEventListener('click', () => { tabBtns[1].click(); if(audioPlayer.paused) playSafe(); });
         
         btnNext.addEventListener('click', () => { if (currentPlayingIndex < currentAudioList.length - 1) { loadAudio(currentPlayingIndex + 1); playSafe(); } });
         btnPrev.addEventListener('click', () => { if (currentPlayingIndex > 0) { loadAudio(currentPlayingIndex - 1); playSafe(); } });
@@ -633,6 +650,14 @@
             if (currentPlayingIndex < currentAudioList.length - 1) {
                 loadAudio(currentPlayingIndex + 1);
                 playSafe();
+                
+                // Update Progress Export UI jika sedang merekam
+                if (isExporting) {
+                    const progressText = document.getElementById('export-progress-text');
+                    if (progressText) {
+                        progressText.innerText = `Memproses Ayat ${currentPlayingIndex + 1} dari ${currentAudioList.length}... \nSistem sedang mengintegrasikan audio dan visual.`;
+                    }
+                }
             } else {
                 // Semua ayat selesai dibaca
                 iconPause.classList.add('hidden');
@@ -767,48 +792,82 @@
         }
 
         btnExport.addEventListener('click', async () => {
-            if (currentAyatData.length === 0) return alert("Muat data ayat terlebih dahulu!");
+            if (currentAyatData.length === 0) return showMessage("Muat data ayat terlebih dahulu!", true);
             
-            // Konfirmasi, dan pindahkan tab ke Studio agar user melihat prosesnya
+            // Pindahkan tab ke Studio agar user melihat prosesnya
             tabBtns[1].click();
 
             isExporting = true;
-            statusInfo.innerHTML = "🔴 Merekam di Latar Belakang... (Tunggu Audio Selesai)";
+            showMessage("🔴 Proses Rekaman Dimulai... Suara akan terdengar nyaring.");
             
-            // Kunci tombol UI agar tidak diinterupsi
+            // Kunci tombol UI
             btnExport.disabled = true;
             btnLoad.disabled = true;
-            btnExport.innerHTML = '<span class="animate-pulse">Memproses...</span>';
-            recordingIndicator.classList.remove('hidden'); // Tampilkan indikator Merekam di preview
+            btnExport.innerHTML = '<span class="animate-pulse">Merekam...</span>';
+            recordingIndicator.classList.remove('hidden');
+            
+            const progressText = document.getElementById('export-progress-text');
+            progressText.innerText = `Menyiapkan Ayat 1 dari ${currentAudioList.length}...`;
 
             try {
-                // 1. Setup Audio Web API (Untuk memasukkan audio ke dalam video recorder)
+                // 1. SETUP AUDIO CONTEXT (Menyalurkan suara ke Speaker & Recorder sekaligus)
                 if (!audioCtx) {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 }
-                if (audioCtx.state === 'suspended') await audioCtx.resume();
+                if (audioCtx.state === 'suspended') {
+                    await audioCtx.resume();
+                }
                 
                 if (!sourceNode) {
-                    sourceNode = audioCtx.createMediaElementSource(audioPlayer);
-                    destNode = audioCtx.createMediaStreamDestination();
-                    sourceNode.connect(destNode); // Kirim suara ke recorder
-                    sourceNode.connect(audioCtx.destination); // Tetap bunyikan di speaker pengguna
+                    try {
+                        sourceNode = audioCtx.createMediaElementSource(audioPlayer);
+                        destNode = audioCtx.createMediaStreamDestination();
+                        sourceNode.connect(destNode); // Rute 1: Ke Video (WebM)
+                        sourceNode.connect(audioCtx.destination); // Rute 2: Ke Telinga Anda (Speaker)
+                    } catch (e) {
+                        console.warn("Audio Routing sudah terhubung.", e);
+                    }
                 }
 
-                // 2. Mulai menggambar di kanvas tersembunyi & tangkap gambarnya
+                // 2. MULAI DARI AYAT 1
+                loadAudio(0);
+                
+                // PENTING: Tunggu audio siap diputar
+                await new Promise(resolve => {
+                    if (audioPlayer.readyState >= 3) resolve();
+                    else {
+                        audioPlayer.oncanplay = resolve;
+                        setTimeout(resolve, 2000); 
+                    }
+                });
+
+                // MAIN KAN!
+                await audioPlayer.play();
+                iconPlay.classList.add('hidden');
+                iconPause.classList.remove('hidden');
+
+                // 3. Mulai menggambar di kanvas tersembunyi
                 startCanvasRecordingLoop();
                 const canvasStream = recordCanvas.captureStream(30);
                 
-                // Gabungkan Gambar Canvas + Suara Audio API
-                const combinedStream = new MediaStream([
-                    ...canvasStream.getVideoTracks(),
-                    ...destNode.stream.getAudioTracks()
-                ]);
+                let audioStream = destNode ? destNode.stream : null;
+                // Fallback khusus Safari
+                if (!audioStream && audioPlayer.captureStream) {
+                    audioStream = audioPlayer.captureStream();
+                }
 
-                // Gunakan format Video yang umum (WebM/MP4)
+                // Gabungkan Gambar + Suara
+                const tracks = [...canvasStream.getVideoTracks()];
+                if (audioStream && audioStream.getAudioTracks().length > 0) {
+                    tracks.push(...audioStream.getAudioTracks());
+                }
+                const combinedStream = new MediaStream(tracks);
+
+                // 4. Setup Perekam Video
                 let mimeType = 'video/webm; codecs=vp9,opus';
                 if (!MediaRecorder.isTypeSupported(mimeType)) {
-                    mimeType = 'video/webm'; 
+                    mimeType = 'video/webm; codecs=vp8,opus'; 
+                    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm'; 
                     if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/mp4'; 
                 }
 
@@ -819,7 +878,7 @@
                     if (e.data && e.data.size > 0) recordedChunks.push(e.data);
                 };
 
-                // 3. FUNGSI AUTO-DOWNLOAD SETELAH SELESAI
+                // 5. EVENT: Saat Perekam Berhenti
                 mediaRecorder.onstop = () => {
                     const videoBlob = new Blob(recordedChunks, { type: mimeType });
                     const videoUrl = URL.createObjectURL(videoBlob);
@@ -829,7 +888,7 @@
                     a.href = videoUrl;
                     
                     const surahName = surahSelect.options[surahSelect.selectedIndex]?.text.split('(')[0].trim() || "Surah";
-                    a.download = `QuranOverlay_${surahName}_Auto.webm`; // Terdownload otomatis!
+                    a.download = `QuranOverlay_${surahName}_Auto.webm`; 
                     
                     document.body.appendChild(a);
                     a.click(); 
@@ -839,22 +898,20 @@
                         URL.revokeObjectURL(videoUrl);
                     }, 100);
 
-                    // Kembalikan UI seperti semula
                     resetExportUI();
-                    statusInfo.innerHTML = "✅ Rekaman Selesai & Video Berhasil Diunduh!";
+                    showMessage("✅ Rekaman Selesai! Cek folder Download Anda.");
                 };
 
-                // Mulai Merekam (Mesin Perekam berjalan)
+                // MULAI MEREKAM
                 mediaRecorder.start();
-                
-                // Mulai putar dari Ayat 1. Saat lagu habis, sistem akan otomatis stop recorder (lihat di audioPlayer.onended)
-                loadAudio(0);
-                playSafe();
 
             } catch (err) {
                 console.error("Gagal export", err);
-                alert("Gagal merekam. Izin audio/rekam layar mungkin diblokir browser.");
+                showMessage("Sistem Audio menolak diakses (Tolong klik tab Studio 1x sebelum merekam)", true);
                 resetExportUI();
+                audioPlayer.pause();
+                iconPause.classList.add('hidden');
+                iconPlay.classList.remove('hidden');
             }
         });
 
@@ -865,13 +922,19 @@
             btnExport.disabled = false;
             btnLoad.disabled = false;
             btnExport.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg> Export`;
-            recordingIndicator.classList.add('hidden'); // Sembunyikan tulisan "MEREKAM"
+            recordingIndicator.classList.add('hidden'); 
         }
 
         function finishExport() {
             if (mediaRecorder && mediaRecorder.state !== "inactive") {
-                // Beri jeda 1 detik di akhir agar suara ayat terakhir tidak terpotong tiba-tiba
-                setTimeout(() => mediaRecorder.stop(), 1000); 
+                // Beri jeda 1 detik di akhir agar suara ayat terakhir (pantulan tajwid) tidak terpotong tiba-tiba
+                setTimeout(() => {
+                    if (mediaRecorder.state !== "inactive") {
+                        mediaRecorder.stop();
+                    }
+                }, 1000); 
+            } else {
+                resetExportUI();
             }
         }
     </script>
