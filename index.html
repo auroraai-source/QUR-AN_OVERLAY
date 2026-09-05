@@ -729,11 +729,13 @@
             }
             lines.push(line.trim());
             
-            let startY = y - ((lines.length - 1) * lineHeight) / 2;
+            // Susun lurus dari titik Y ke bawah (Bukan ditengah absolut lagi)
             context.direction = isArabic ? 'rtl' : 'ltr';
             for(let i = 0; i < lines.length; i++) {
-                context.fillText(lines[i], x, startY + (i * lineHeight));
+                context.fillText(lines[i], x, y + (i * lineHeight));
             }
+            
+            return y + (lines.length * lineHeight); // Kembalikan titik Y terakhir agar teks selanjutnya bisa menyambung dibawahnya!
         }
 
         // Looping untuk menggambar frame video rahasia di latar belakang (Tidak mengubah UI!)
@@ -760,29 +762,42 @@
                     const arabSize = parseInt(sizeArabInput.value) * 2; 
                     const indoSize = parseInt(sizeIndoInput.value) * 2.5;
                     const posY = parseInt(posYInput.value); 
-                    const centerY = (posY / 100) * h; 
+                    
+                    // Titik Y awal dimulai lebih ke atas agar ada ruang
+                    let currentY = (posY / 100) * h - (arabSize + indoSize); 
+                    if (currentY < 120) currentY = 120; // Margin aman paling atas
                     
                     ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
+                    ctx.textBaseline = 'top'; // Patokan penulisan dari atas ke bawah
                     
                     // Header
                     ctx.fillStyle = '#FBBF24';
                     ctx.font = `bold ${indoSize * 0.8}px 'Inter', sans-serif`;
-                    ctx.fillText(headerText.toUpperCase(), w/2, centerY - arabSize - 80);
+                    ctx.fillText(headerText.toUpperCase(), w/2, currentY);
+                    currentY += indoSize * 2; // Beri spasi ke Arab
                     
                     // Arab Glow
                     ctx.fillStyle = textColor;
                     ctx.font = `bold ${arabSize}px 'Amiri Quran', serif`;
                     ctx.shadowColor = textColor + '80';
                     ctx.shadowBlur = 20;
-                    wrapText(ctx, ayat.text, w/2, centerY, w * 0.85, arabSize * 2.2, true);
+                    currentY = wrapText(ctx, ayat.text, w/2, currentY, w * 0.85, arabSize * 1.8, true);
                     ctx.shadowBlur = 0; 
+                    
+                    currentY += 80; // Margin ekstra setelah Arab
                     
                     // Terjemahan
                     if (showTranslation) {
                         ctx.fillStyle = '#FBBF24';
                         ctx.font = `600 ${indoSize}px 'Inter', sans-serif`;
-                        wrapText(ctx, ayat.translationId, w/2, centerY + arabSize + 60, w * 0.85, indoSize * 1.5, false);
+                        currentY = wrapText(ctx, ayat.translationId, w/2, currentY, w * 0.85, indoSize * 1.5, false);
+                        
+                        currentY += 40; // Spasi sebelum Inggris
+                        
+                        // Terjemahan Inggris
+                        ctx.fillStyle = '#cbd5e1'; // Warna Abu Terang
+                        ctx.font = `italic 400 ${indoSize * 0.85}px 'Inter', sans-serif`;
+                        wrapText(ctx, ayat.translationEn || '', w/2, currentY, w * 0.85, indoSize * 1.3, false);
                     }
                 }
                 
