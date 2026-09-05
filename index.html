@@ -126,6 +126,23 @@
             background: #cbd5e1;
             border-radius: 2px;
         }
+
+        /* GAYA SINEMATIK CAPCUT OVERLAY (Teks Emas Bercahaya) */
+        .text-glow-gold {
+            color: #FBBF24; /* Emas */
+            text-shadow: 0 0 15px rgba(251, 191, 36, 0.7), 0 0 30px rgba(251, 191, 36, 0.5);
+        }
+        .text-gold {
+            color: #FBBF24;
+        }
+        .text-gold-muted {
+            color: #D97706; /* Emas kecoklatan untuk terjemahan EN */
+        }
+        
+        /* Menyembunyikan scrollbar bawaan di dalam overlay */
+        #overlay-content::-webkit-scrollbar {
+            display: none;
+        }
     </style>
 </head>
 
@@ -259,8 +276,8 @@
                                 <p class="text-sm">Belum ada ayat dimuat.<br>Pilih surah di tab pertama.</p>
                             </div>
 
-                            <!-- Dynamic Text Area -->
-                            <div id="quran-text-container" class="w-full text-center space-y-6 drop-shadow-md hidden">
+                            <!-- Dynamic Text Area (Gaya Slide Bertumpuk) -->
+                            <div id="quran-text-container" class="w-full h-full relative hidden">
                                 <!-- Data ayat akan dimasukkan lewat JS ke sini -->
                             </div>
                         </div>
@@ -394,6 +411,7 @@
         let currentAyatData = [];
         let currentAudioList = [];
         let currentPlayingIndex = 0;
+        let surahDataMap = {}; // Untuk menyimpan data jumlah ayat otomatis
         const apiBaseUrl = "https://api.quran.gading.dev/surah";
 
         // DOM Elements - Tabs
@@ -472,11 +490,28 @@
                 
                 surahSelect.innerHTML = '';
                 data.data.forEach(surah => {
+                    surahDataMap[surah.number] = surah; // Simpan data jumlah ayat
                     const option = document.createElement('option');
                     option.value = surah.number;
                     option.textContent = `${surah.number}. ${surah.name.transliteration.id} (${surah.name.short}) - ${surah.numberOfVerses} Ayat`;
                     surahSelect.appendChild(option);
                 });
+
+                // Otomatis ubah nilai "Sampai Ayat" menjadi maksimal saat surah diganti
+                surahSelect.addEventListener('change', () => {
+                    const selectedSurah = surahDataMap[surahSelect.value];
+                    if (selectedSurah) {
+                        ayatStartInput.value = 1;
+                        ayatEndInput.value = selectedSurah.numberOfVerses;
+                    }
+                });
+
+                // Set nilai awal jika data berhasil dimuat
+                if (data.data.length > 0) {
+                    surahSelect.value = data.data[0].number;
+                    surahSelect.dispatchEvent(new Event('change'));
+                }
+
             } catch (error) {
                 console.error("Gagal memuat daftar Surah:", error);
                 surahSelect.innerHTML = '<option value="">Gagal memuat data</option>';
@@ -484,6 +519,32 @@
         }
 
         fetchSurahList();
+
+        // FITUR BARU: Helper untuk memuat/menyimpan cache audio per ayat perlahan-lahan
+        const preloadAudioWithDelay = (url, delay = 2500) => {
+            return new Promise((resolve) => {
+                const audio = new Audio();
+                let isResolved = false;
+                
+                const finish = () => {
+                    if(!isResolved) {
+                        isResolved = true;
+                        resolve();
+                    }
+                };
+
+                // Beri waktu tunggu (delay) sesuai instruksi agar browser merender audio dengan sempurna
+                setTimeout(() => {
+                    audio.addEventListener('canplaythrough', finish, { once: true });
+                    audio.addEventListener('error', finish, { once: true });
+                    audio.src = url;
+                    audio.load();
+                    
+                    // Fallback aman: jika internet lambat, maksimal tunggu 6 detik lalu paksa lanjut
+                    setTimeout(finish, 6000);
+                }, delay);
+            });
+        };
 
         // --- LOAD QURAN DATA ---
         btnLoad.addEventListener('click', async () => {
@@ -496,55 +557,68 @@
             if (!surahNumber) return alert("Pilih surah terlebih dahulu!");
             if (start > end) return alert("Ayat awal tidak boleh lebih besar dari ayat akhir!");
 
-            btnLoad.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Memuat...';
             btnLoad.disabled = true;
-
+            
             try {
+                btnLoad.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Mengambil Data...';
+                
                 const response = await fetch(`${apiBaseUrl}/${surahNumber}`);
                 const result = await response.json();
                 const surahData = result.data;
 
-                // Filter verses
                 let verses = surahData.verses.filter(v => v.number.inSurah >= start && v.number.inSurah <= end);
                 
                 currentAyatData = [];
                 currentAudioList = [];
 
-                // Add Bismillah if needed and not Al-Fatihah/At-Taubah
+                // 1. TAHAP RENDER BASMALAH
                 if (includeBismillah && surahNumber !== "1" && surahNumber !== "9" && start === 1 && surahData.preBismillah) {
+                     btnLoad.innerHTML = `<span class="animate-pulse">Memuat Basmalah... (Harap Tunggu)</span>`;
+                     const bismillahUrl = `https://cdn.islamic.network/quran/audio/128/${selectedQari}/1.mp3`;
+                     
+                     await preloadAudioWithDelay(bismillahUrl, 2000); // Jeda Render
+
                      currentAyatData.push({
                          text: surahData.preBismillah.text.arab,
-                         translation: "Dengan nama Allah Yang Maha Pengasih, Maha Penyayang.",
+                         translationId: "Dengan menyebut nama Allah Yang Maha Pengasih lagi Maha Penyayang.",
+                         translationEn: "In the name of Allah, the Entirely Merciful, the Especially Merciful.",
                          verseNumber: 0
                      });
-                     currentAudioList.push(surahData.preBismillah.audio.primary); 
+                     currentAudioList.push(bismillahUrl); 
                 }
 
-                verses.forEach(v => {
+                // 2. TAHAP RENDER TIAP AYAT SECARA BERKALA (Lambat & Pasti)
+                for (let i = 0; i < verses.length; i++) {
+                    const v = verses[i];
+                    // Tampilkan indikator proses merender ayat satu per satu
+                    btnLoad.innerHTML = `<span class="animate-pulse">Merender Ayat ${v.number.inSurah}... (${i+1}/${verses.length})</span>`;
+                    
+                    const audioUrl = `https://cdn.islamic.network/quran/audio/128/${selectedQari}/${v.number.inQuran}.mp3`;
+                    
+                    // Jeda rendering tiap ayat agar memori HP stabil mengunduh audio
+                    await preloadAudioWithDelay(audioUrl, 3000); 
+
                     currentAyatData.push({
                         text: v.text.arab,
-                        translation: v.translation.id,
+                        translationId: v.translation.id,
+                        translationEn: v.translation.en || "",
                         verseNumber: v.number.inSurah
                     });
-                    // Get specific qari audio if available, else primary
-                    let audioUrl = v.audio.primary;
-                    if(selectedQari === 'ar.alafasy') audioUrl = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${v.number.inQuran}.mp3`;
-                    else if(selectedQari === 'ar.abdulbasitmurattal') audioUrl = `https://cdn.islamic.network/quran/audio/128/ar.abdulbasitmurattal/${v.number.inQuran}.mp3`;
-                    else if(selectedQari === 'ar.husary') audioUrl = `https://cdn.islamic.network/quran/audio/128/ar.husary/${v.number.inQuran}.mp3`;
-                    else if(selectedQari === 'ar.minshawi') audioUrl = `https://cdn.islamic.network/quran/audio/128/ar.minshawi/${v.number.inQuran}.mp3`;
-                    
                     currentAudioList.push(audioUrl);
-                });
+                }
+
+                btnLoad.innerHTML = `<span class="animate-pulse">Menyiapkan Tampilan...</span>`;
+                await new Promise(r => setTimeout(r, 1000));
 
                 renderQuranText();
                 setupAudio();
                 
-                // Switch to Studio Tab automatically
-                tabBtns[1].click();
+                // Pindah ke tab Studio otomatis setelah SEMUA selesai dirender
+                tabBtns[1].click(); 
 
             } catch (error) {
                 console.error(error);
-                alert("Terjadi kesalahan saat memuat ayat.");
+                alert("Terjadi kesalahan jaringan saat memuat ayat.");
             } finally {
                 btnLoad.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Muat Data Ayat';
                 btnLoad.disabled = false;
@@ -559,24 +633,52 @@
             quranTextContainer.style.display = 'block';
             quranTextContainer.innerHTML = '';
 
+            const surahName = surahDataMap[surahSelect.value]?.name.transliteration.id.toUpperCase() || "SURAH";
+
             currentAyatData.forEach((ayat, index) => {
                 const div = document.createElement('div');
-                div.className = `ayat-block transition-all duration-300 ${index === 0 ? 'opacity-100 scale-100' : 'opacity-40 scale-95'}`;
+                div.className = `ayat-block absolute inset-0 flex flex-col justify-between py-12 px-6 transition-opacity duration-700 ease-in-out ${index === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`;
                 div.id = `ayat-block-${index}`;
                 
                 const showTranslation = toggleTerjemahan.checked;
                 
-                // Nomor Ayat (Skip untuk Bismillah if verseNumber is 0)
-                const verseLabel = ayat.verseNumber > 0 ? `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full border-2 border-current text-[10px] ml-2 opacity-70">${ayat.verseNumber}</span>` : '';
+                // Format Header (NAMA SURAH • BASMALAH / AYAT X)
+                const headerText = ayat.verseNumber === 0 ? `${surahName} • BASMALAH` : `${surahName} • AYAT ${ayat.verseNumber}`;
 
+                // DESAIN SINEMATIK: Mengikuti persis gambar referensi (Glow Emas, Garis tipis, Terjemahan di bawah)
                 div.innerHTML = `
-                    <div class="arabic-text leading-loose mb-3 text-shadow" style="font-size: ${sizeArabInput.value}px; color: ${colorArabInput.value}">
-                        ${ayat.text} ${verseLabel}
+                    <!-- Header -->
+                    <div class="text-center w-full mt-4">
+                        <h3 class="text-[10px] tracking-[0.25em] text-[#FBBF24] uppercase font-bold drop-shadow-md">${headerText}</h3>
                     </div>
-                    ${showTranslation ? `<div class="translation-text font-sans text-gray-100 leading-relaxed text-shadow-sm" style="font-size: ${sizeIndoInput.value}px;">${ayat.translation}</div>` : ''}
+                    
+                    <!-- Teks Arab di Tengah Atas (Glow Emas Sinematik Ekstra) -->
+                    <div class="flex-1 flex items-center justify-center w-full">
+                        <div class="arabic-text leading-[2.5] text-center text-[#FCD34D] font-bold transition-all duration-300" 
+                             style="font-size: ${sizeArabInput.value}px; text-shadow: 0 0 10px rgba(251, 191, 36, 0.8), 0 0 20px rgba(251, 191, 36, 0.4), 0 0 30px rgba(251, 191, 36, 0.2);">
+                            ${ayat.text}
+                        </div>
+                    </div>
+                    
+                    <!-- Terjemahan di Bawah (Persis Referensi) -->
+                    ${showTranslation ? `
+                    <div class="flex flex-col items-center justify-end mb-6 w-full">
+                        <hr class="w-32 border-[#D97706]/30 mb-6">
+                        <div class="translation-text font-sans text-[#FBBF24] font-semibold text-center mb-3 leading-snug px-4" style="font-size: ${sizeIndoInput.value}px;">
+                            ${ayat.translationId}
+                        </div>
+                        <div class="translation-text font-serif italic text-[#D97706] text-center leading-relaxed px-4" style="font-size: ${Math.max(10, sizeIndoInput.value - 2)}px;">
+                            ${ayat.translationEn}
+                        </div>
+                    </div>
+                    ` : ''}
                 `;
                 quranTextContainer.appendChild(div);
             });
+
+            // Setel default latar belakang ke hitam pekat untuk hasil bercahaya sinematik CapCut
+            exportArea.style.backgroundColor = '#0b0f19'; 
+            exportArea.style.backgroundImage = 'none';
 
             updateLayout();
         }
@@ -593,9 +695,10 @@
             if (index < 0 || index >= currentAudioList.length) return;
             
             audioPlayer.src = currentAudioList[index];
+            audioPlayer.load(); // Paksa muat ulang agar media terdeteksi
             currentPlayingIndex = index;
             
-            const surahName = surahSelect.options[surahSelect.selectedIndex].text.split('(')[0].trim();
+            const surahName = surahSelect.options[surahSelect.selectedIndex]?.text.split('(')[0].trim() || "Surah";
             const verseNum = currentAyatData[index].verseNumber;
             nowPlayingText.textContent = verseNum === 0 ? `${surahName} - Basmalah` : `${surahName} - Ayat ${verseNum}`;
             
@@ -605,24 +708,40 @@
         function highlightAyat(index) {
             document.querySelectorAll('.ayat-block').forEach((block, i) => {
                 if (i === index) {
-                    block.classList.remove('opacity-40', 'scale-95');
-                    block.classList.add('opacity-100', 'scale-100');
-                    // Scroll canvas to view active ayah if possible
-                    block.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Munculkan ayat yang aktif dengan halus
+                    block.classList.remove('opacity-0', 'z-0', 'pointer-events-none');
+                    block.classList.add('opacity-100', 'z-10');
                 } else {
-                    block.classList.remove('opacity-100', 'scale-100');
-                    block.classList.add('opacity-40', 'scale-95');
+                    // Sembunyikan ayat lain
+                    block.classList.remove('opacity-100', 'z-10');
+                    block.classList.add('opacity-0', 'z-0', 'pointer-events-none');
                 }
             });
         }
 
+        // Fungsi aman untuk memutar audio mencegah error "play() request was interrupted"
+        function playSafe() {
+            const playPromise = audioPlayer.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    iconPlay.classList.add('hidden');
+                    iconPause.classList.remove('hidden');
+                }).catch(e => {
+                    // AbortError sangat wajar terjadi saat melompat track/ayat atau memuat ulang secara cepat
+                    if (e.name !== 'AbortError') {
+                        console.warn("Gagal memutar audio:", e);
+                        iconPause.classList.add('hidden');
+                        iconPlay.classList.remove('hidden');
+                    }
+                });
+            }
+        }
+
         function togglePlay() {
-            if (!audioPlayer.src) return;
+            if (!audioPlayer.src || audioPlayer.src.includes('undefined')) return alert("Pilih dan muat data ayat terlebih dahulu!");
             
             if (audioPlayer.paused) {
-                audioPlayer.play();
-                iconPlay.classList.add('hidden');
-                iconPause.classList.remove('hidden');
+                playSafe();
             } else {
                 audioPlayer.pause();
                 iconPause.classList.add('hidden');
@@ -634,34 +753,44 @@
         btnPlay.addEventListener('click', togglePlay);
         btnPreviewAudio.addEventListener('click', () => {
             tabBtns[1].click(); // Pindah ke studio
-            togglePlay();
+            if (audioPlayer.paused) playSafe();
         });
 
         btnNext.addEventListener('click', () => {
             if (currentPlayingIndex < currentAudioList.length - 1) {
                 loadAudio(currentPlayingIndex + 1);
-                audioPlayer.play();
-                iconPlay.classList.add('hidden');
-                iconPause.classList.remove('hidden');
+                playSafe();
             }
         });
 
         btnPrev.addEventListener('click', () => {
             if (currentPlayingIndex > 0) {
                 loadAudio(currentPlayingIndex - 1);
-                audioPlayer.play();
-                iconPlay.classList.add('hidden');
-                iconPause.classList.remove('hidden');
+                playSafe();
             }
         });
 
         audioPlayer.addEventListener('ended', () => {
             if (currentPlayingIndex < currentAudioList.length - 1) {
+                // Efek Karaoke Beruntun: Langsung putar ayat selanjutnya
                 loadAudio(currentPlayingIndex + 1);
-                audioPlayer.play();
+                playSafe();
             } else {
+                // Selesai semua ayat
                 iconPause.classList.add('hidden');
                 iconPlay.classList.remove('hidden');
+                if(document.fullscreenElement) document.exitFullscreen();
+            }
+        });
+
+        // TAMBAHAN KEAMANAN: Jika audio gagal di tengah jalan, paksa skip ke ayat selanjutnya agar tidak macet
+        audioPlayer.addEventListener('error', () => {
+            console.warn("Audio melewati batas/gagal dimuat, melewati ke ayat berikutnya...");
+            if (currentPlayingIndex < currentAudioList.length - 1) {
+                setTimeout(() => {
+                    loadAudio(currentPlayingIndex + 1);
+                    playSafe();
+                }, 1500);
             }
         });
 
@@ -786,56 +915,23 @@
                 return alert("Muat data ayat terlebih dahulu sebelum mengekspor!");
             }
 
-            // Simpan status background asli
-            const originalBgImage = exportArea.style.backgroundImage;
+            // Instruksi merekam video untuk aplikasi editor Mobile
+            alert("🎬 MODE REKAM VIDEO OVERLAY 🎬\n\nUntuk menjadikan Video MP4:\n1. Aktifkan fitur Perekam Layar (Screen Record) di HP Anda sekarang.\n2. Layar ini akan berubah menjadi Fullscreen (Penuh).\n3. Audio dan teks akan berganti otomatis dari awal hingga akhir.\n4. Setelah rekam, masukkan video ke CapCut lalu gunakan fitur 'Campuran -> Layar/Mencerahkan'!");
+
+            const elem = exportArea;
             
-            // Jika mode transparan, hapus background kotak-kotak saat render html2canvas
-            if(exportArea.style.backgroundColor === 'transparent' || exportArea.style.backgroundColor === 'rgba(0, 0, 0, 0)') {
-                exportArea.style.backgroundImage = 'none';
+            // Masuk mode layar penuh pada div exportArea (agar layar HP direkam tanpa tombol UI)
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
             }
 
-            // Matikan efek opacity redup sementara agar semua ayat terlihat di hasil ekspor (Opsional: atau biarkan jika ingin sesuai preview)
-            const allBlocks = document.querySelectorAll('.ayat-block');
-            const originalClasses = Array.from(allBlocks).map(el => el.className);
-            
-            // Kita ingin export satu ayat yang sedang aktif (atau semua?). Sesuai CapCut, biasanya semua teks di-export utuh.
-            allBlocks.forEach(el => {
-                el.classList.remove('opacity-40', 'scale-95');
-                el.classList.add('opacity-100', 'scale-100');
-            });
-
-            // Ganti teks tombol menjadi loading
-            const originalBtnHtml = btnExport.innerHTML;
-            btnExport.innerHTML = '<svg class="animate-spin h-4 w-4 mr-1 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Proses...';
-
-            // Eksekusi html2canvas
-            setTimeout(() => {
-                html2canvas(exportArea, {
-                    backgroundColor: (exportArea.style.backgroundColor === 'transparent' || exportArea.style.backgroundColor === 'rgba(0, 0, 0, 0)') ? null : exportArea.style.backgroundColor,
-                    scale: 3 // Resolusi tinggi
-                }).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = `Quran_Overlay_${surahSelect.value}.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                }).catch(err => {
-                    console.error("Gagal mengekspor gambar:", err);
-                    alert("Gagal membuat gambar overlay. Coba lagi.");
-                }).finally(() => {
-                    // Kembalikan status tombol
-                    btnExport.innerHTML = originalBtnHtml;
-                    
-                    // Kembalikan background transparan visual
-                    if(originalBgImage.includes('repeating-conic-gradient')) {
-                        exportArea.style.backgroundImage = originalBgImage;
-                    }
-
-                    // Kembalikan opacity
-                    allBlocks.forEach((el, index) => {
-                        el.className = originalClasses[index];
-                    });
-                });
-            }, 300); // Jeda sejenak untuk memastikan render DOM siap
+            // Putar audio dari ayat pertama secara otomatis
+            loadAudio(0);
+            playSafe();
         });
 
         // Add some basic CSS for text shadows manually to ensure they exist
