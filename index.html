@@ -52,7 +52,7 @@
         @media (max-width: 639px) {
             .phone-frame {
                 width: 100vw;
-                height: 100vh;
+                height: 100dvh;
                 background-color: var(--background);
                 display: flex;
                 flex-direction: column;
@@ -129,7 +129,7 @@
     </style>
 </head>
 
-<body class="h-screen w-screen flex items-center justify-center">
+<body class="h-[100dvh] w-screen flex items-center justify-center">
 
     <!-- Area Utama Mockup HP -->
     <div class="phone-frame w-full max-w-[400px]">
@@ -195,7 +195,7 @@
                     <div class="space-y-4">
                         <div>
                             <label class="block text-xs text-gray-500 mb-1 font-medium">Surah Al-Qur'an</label>
-                            <select id="surah-select" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block p-3 outline-none transition-shadow">
+                            <select id="surah-select" class="w-full bg-pink-500/10 border border-pink-200 text-gray-800 text-sm rounded-xl focus:ring-pink-500 focus:border-pink-500 block p-3 outline-none transition-shadow">
                                 <option value="">Memuat daftar Surah...</option>
                             </select>
                         </div>
@@ -203,11 +203,11 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs text-gray-500 mb-1 font-medium">Dari Ayat</label>
-                                <input type="number" id="ayat-start" min="1" value="1" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block p-3 outline-none transition-shadow">
+                                <input type="number" id="ayat-start" min="1" value="1" class="w-full bg-pink-500/10 border border-pink-200 text-gray-800 text-sm rounded-xl focus:ring-pink-500 focus:border-pink-500 block p-3 outline-none transition-shadow">
                             </div>
                             <div>
                                 <label class="block text-xs text-gray-500 mb-1 font-medium">Sampai Ayat</label>
-                                <input type="number" id="ayat-end" min="1" value="3" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block p-3 outline-none transition-shadow">
+                                <input type="number" id="ayat-end" min="1" value="3" class="w-full bg-pink-500/10 border border-pink-200 text-gray-800 text-sm rounded-xl focus:ring-pink-500 focus:border-pink-500 block p-3 outline-none transition-shadow">
                             </div>
                         </div>
 
@@ -230,7 +230,7 @@
                         Audio & Qari
                     </h2>
                     <div>
-                        <select id="qari-select" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl focus:ring-pink-500 focus:border-pink-500 block p-3 outline-none">
+                        <select id="qari-select" class="w-full bg-pink-500/10 border border-pink-200 text-gray-800 text-sm rounded-xl focus:ring-pink-500 focus:border-pink-500 block p-3 outline-none">
                             <option value="ar.ahmedibnalidarwish">Ahmad Saud [Standar]</option>
                             <option value="ar.alafasy">Mishary Rashid Alafasy</option>
                             <option value="ar.abdulbasitmurattal">Abdul Basit (Murattal)</option>
@@ -474,7 +474,7 @@
                 data.data.forEach(surah => {
                     const option = document.createElement('option');
                     option.value = surah.number;
-                    option.textContent = `${surah.number}. ${surah.name.transliteration.id} (${surah.name.short})`;
+                    option.textContent = `${surah.number}. ${surah.name.transliteration.id} (${surah.name.short}) - ${surah.numberOfVerses} Ayat`;
                     surahSelect.appendChild(option);
                 });
             } catch (error) {
