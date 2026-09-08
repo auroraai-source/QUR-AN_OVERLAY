@@ -569,14 +569,22 @@
         const bgColor = document.getElementById('color-picker').value;
         
         try {
-            progressStatus.innerText = "Menyiapkan Format Khusus CapCut...";
+            progressStatus.innerText = "Membuka Mesin Render...";
             
+            // 1. Pancing Canvas agar tidak kosong saat di-capture (Khusus HP)
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Buka Paksa Kunci Audio Mobile
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             const audioCtx = new AudioContext();
-            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume(); 
+            }
             
             const audioDest = audioCtx.createMediaStreamDestination();
             
+            // Suntikan Suara Bisu (Menjaga track audio tetap hidup)
             const silence = audioCtx.createOscillator();
             const silenceGain = audioCtx.createGain();
             silenceGain.gain.value = 0; 
@@ -585,33 +593,19 @@
             silence.start();
             
             const canvasStream = canvas.captureStream(30);
-            
             const combinedStream = new MediaStream([
                 ...canvasStream.getVideoTracks(),
                 ...audioDest.stream.getAudioTracks()
             ]);
 
-            // PENCARIAN FORMAT CAPCUT TERBAIK
-            let mimeType = '';
-            let fileExt = '';
-            const capcutFormats = [
-                'video/mp4;codecs=avc1,mp4a.40.2', 
-                'video/mp4;codecs=h264,aac',
-                'video/mp4',
-                'video/webm;codecs=h264,opus',
-                'video/webm;codecs=vp8,opus'
-            ];
-            
-            for(let format of capcutFormats) {
-                if(MediaRecorder.isTypeSupported(format)) {
-                    mimeType = format;
-                    fileExt = format.includes('mp4') ? '.mp4' : '.webm';
-                    break;
-                }
+            let mimeType = 'video/webm';
+            let fileExt = '.webm';
+            if(MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+                mimeType = 'video/webm;codecs=vp8,opus';
             }
-            if(!mimeType) { mimeType = 'video/webm'; fileExt = '.webm'; }
 
-            const recorderOptions = { mimeType: mimeType, videoBitsPerSecond: 4000000 };
+            // Turunkan sedikit Bitrate untuk HP agar RAM aman (2.5 Mbps)
+            const recorderOptions = { mimeType: mimeType, videoBitsPerSecond: 2500000 };
             const recorder = new MediaRecorder(combinedStream, recorderOptions);
             let chunks = [];
             
@@ -621,8 +615,9 @@
             let isDrawing = true;
             let exportCurrentTime = 0;
             let exportDuration = 0;
-            let totalVideoDuration = 0; // Total durasi untuk Metadata CapCut
+            let totalVideoDuration = 0; 
 
+            // Fungsi Loop Gambar Latar Belakang
             function drawCanvasFrame() {
                 if(!isDrawing) return;
                 
@@ -672,17 +667,41 @@
             }
             drawCanvasFrame(); 
             
+            // Proses Loop Ayat
             for(let i=0; i<currentAyatData.length; i++) {
                 currentAyatIndex = i;
-                progressStatus.innerText = `Menyuntikkan Suara Ayat ${i+1}...`;
+                progressStatus.innerText = `Menyiapkan Audio Ayat ${i+1}...`;
                 
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(currentAyatData[i].audioUrl)}`;
-                const res = await fetch(proxyUrl);
-                const arrayBuffer = await res.arrayBuffer();
+                // Sistem Pengunduh 3 Lapis (Anti-Gagal)
+                let arrayBuffer;
+                const url = currentAyatData[i].audioUrl;
+                const proxies = [
+                    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                    url
+                ];
+
+                let fetchSuccess = false;
+                for (let proxy of proxies) {
+                    try {
+                        const res = await fetch(proxy);
+                        if (res.ok) {
+                            arrayBuffer = await res.arrayBuffer();
+                            fetchSuccess = true;
+                            break; // Berhasil, keluar dari loop
+                        }
+                    } catch (e) {
+                        console.warn("Proxy gagal, mencoba jalur lain...");
+                    }
+                }
+
+                if (!fetchSuccess) {
+                    throw new Error("Gagal menarik audio. Cek internet Anda.");
+                }
                 
                 const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
                 exportDuration = audioBuffer.duration;
-                totalVideoDuration += exportDuration; // Tambah durasi
+                totalVideoDuration += exportDuration; 
                 
                 const source = audioCtx.createBufferSource();
                 source.buffer = audioBuffer;
@@ -700,7 +719,6 @@
                 await new Promise((resolve) => {
                     const progressInterval = setInterval(() => {
                         exportCurrentTime = audioCtx.currentTime - startTime;
-                        
                         if (exportCurrentTime >= exportDuration) {
                             clearInterval(progressInterval);
                             resolve(); 
@@ -711,27 +729,26 @@
             
             isDrawing = false;
             await new Promise(r => setTimeout(r, 1000)); 
-            totalVideoDuration += 1; // Tambah 1 detik jeda penutup
+            totalVideoDuration += 1; 
             recorder.stop();
             
             if (audioCtx.state !== 'closed') audioCtx.close();
             
             recorder.onstop = () => {
                 progressStatus.innerText = "Mematangkan File Video CapCut...";
-                
                 const rawBlob = new Blob(chunks, { type: mimeType }); 
                 
                 const doDownload = (finalBlob) => {
-                    const url = URL.createObjectURL(finalBlob);
+                    const finalUrl = URL.createObjectURL(finalBlob);
                     const a = document.createElement('a');
                     a.style.display = 'none';
-                    a.href = url;
+                    a.href = finalUrl;
                     a.download = `Quran_Overlay_CapCut${fileExt}`;
                     document.body.appendChild(a);
                     a.click();
                     
                     setTimeout(() => {
-                        URL.revokeObjectURL(url);
+                        URL.revokeObjectURL(finalUrl);
                         document.body.removeChild(a);
                         modal.classList.add('hidden');
                         modal.classList.remove('flex');
@@ -741,19 +758,21 @@
                     }, 1500);
                 };
 
-                if (fileExt === '.webm') {
-                    progressStatus.innerText = "Menyuntikkan Metadata Durasi (Wajib untuk CapCut)...";
-                    const script = document.createElement('script');
-                    script.src = "https://cdn.jsdelivr.net/npm/fix-webm-duration@1.0.6/fix-webm-duration.js";
-                    script.onload = () => {
-                        ysFixWebmDuration(rawBlob, totalVideoDuration * 1000, function(fixedBlob) {
-                            doDownload(fixedBlob);
-                        });
-                    };
-                    document.body.appendChild(script);
-                } else {
+                // Injeksi Metadata Durasi dengan Fallback Aman
+                progressStatus.innerText = "Menyuntikkan Metadata...";
+                const script = document.createElement('script');
+                script.src = "https://cdn.jsdelivr.net/npm/fix-webm-duration@1.0.6/fix-webm-duration.js";
+                script.onload = () => {
+                    ysFixWebmDuration(rawBlob, totalVideoDuration * 1000, function(fixedBlob) {
+                        doDownload(fixedBlob);
+                    });
+                };
+                script.onerror = () => {
+                    // Jika script metadata diblokir, tetap unduh videonya secara paksa
+                    console.warn("Script metadata gagal dimuat, mengunduh file raw.");
                     doDownload(rawBlob);
-                }
+                };
+                document.body.appendChild(script);
             };
 
         } catch (err) {
@@ -762,7 +781,7 @@
             modal.classList.add('hidden');
             modal.classList.remove('flex');
             isExporting = false;
-            showMessage("Perekaman batal. Muat ulang halaman jika error.", "error");
+            showMessage(`Batal: ${err.message}`, "error");
         }
     });
 </script>
