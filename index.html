@@ -569,42 +569,49 @@
         const bgColor = document.getElementById('color-picker').value;
         
         try {
-            progressStatus.innerText = "Membangun Mesin Audio Studio (Jurus Pamungkas)...";
+            progressStatus.innerText = "Menyiapkan Format Khusus CapCut...";
             
-            // --- JURUS PAMUNGKAS: BINARY AUDIO DECODING (ANTI-BISU MUTLAK) ---
-            // Kita mem-bypass elemen HTML Audio dan langsung membedah data biner di RAM!
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             const audioCtx = new AudioContext();
             if (audioCtx.state === 'suspended') await audioCtx.resume();
             
-            // Terminal penyedot suara
             const audioDest = audioCtx.createMediaStreamDestination();
             
-            // HACK MUTLAK STUDIO: Suntikkan gelombang bisu (Silent Oscillator)
-            // Ini memaksa Google Chrome untuk menjaga track audio tetap "hidup" dari detik ke-0
             const silence = audioCtx.createOscillator();
             const silenceGain = audioCtx.createGain();
-            silenceGain.gain.value = 0; // 100% Bisu
+            silenceGain.gain.value = 0; 
             silence.connect(silenceGain);
             silenceGain.connect(audioDest);
             silence.start();
             
-            // Setup Stream Rekaman Video HD
             const canvasStream = canvas.captureStream(30);
             
-            // Menyatukan Tali Video + Tali Audio Mutlak
             const combinedStream = new MediaStream([
                 ...canvasStream.getVideoTracks(),
                 ...audioDest.stream.getAudioTracks()
             ]);
 
-            // KUNCI MUTLAK: HANYA BOLEH WEBM. 
-            // Chrome cacat dalam menggabungkan audio PCM ke dalam MP4, yang menyebabkan video bisu.
-            // Format WebM didukung penuh dan sangat ringan jika dimasukkan ke CapCut!
-            let mimeType = 'video/webm;codecs=vp8,opus';
-            let fileExt = '.webm';
+            // PENCARIAN FORMAT CAPCUT TERBAIK
+            let mimeType = '';
+            let fileExt = '';
+            const capcutFormats = [
+                'video/mp4;codecs=avc1,mp4a.40.2', 
+                'video/mp4;codecs=h264,aac',
+                'video/mp4',
+                'video/webm;codecs=h264,opus',
+                'video/webm;codecs=vp8,opus'
+            ];
+            
+            for(let format of capcutFormats) {
+                if(MediaRecorder.isTypeSupported(format)) {
+                    mimeType = format;
+                    fileExt = format.includes('mp4') ? '.mp4' : '.webm';
+                    break;
+                }
+            }
+            if(!mimeType) { mimeType = 'video/webm'; fileExt = '.webm'; }
 
-            const recorderOptions = { mimeType: mimeType, videoBitsPerSecond: 3000000 };
+            const recorderOptions = { mimeType: mimeType, videoBitsPerSecond: 4000000 };
             const recorder = new MediaRecorder(combinedStream, recorderOptions);
             let chunks = [];
             
@@ -614,6 +621,7 @@
             let isDrawing = true;
             let exportCurrentTime = 0;
             let exportDuration = 0;
+            let totalVideoDuration = 0; // Total durasi untuk Metadata CapCut
 
             function drawCanvasFrame() {
                 if(!isDrawing) return;
@@ -664,37 +672,33 @@
             }
             drawCanvasFrame(); 
             
-            // LOOP AYAT - MENGGUNAKAN AUDIO BINARY DECODING (Pasti Bersuara)
             for(let i=0; i<currentAyatData.length; i++) {
                 currentAyatIndex = i;
-                progressStatus.innerText = `Membedah Gelombang Suara Ayat ${i+1}...`;
+                progressStatus.innerText = `Menyuntikkan Suara Ayat ${i+1}...`;
                 
-                // 1. Sedot file MP3 mentah (ArrayBuffer)
-                const res = await fetch(currentAyatData[i].audioUrl);
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(currentAyatData[i].audioUrl)}`;
+                const res = await fetch(proxyUrl);
                 const arrayBuffer = await res.arrayBuffer();
                 
-                // 2. Decode menjadi Gelombang Suara Murni
                 const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
                 exportDuration = audioBuffer.duration;
+                totalVideoDuration += exportDuration; // Tambah durasi
                 
-                // 3. Suntikkan gelombang ke mesin rekaman
                 const source = audioCtx.createBufferSource();
                 source.buffer = audioBuffer;
-                source.connect(audioDest);            // Salurkan ke Video
-                source.connect(audioCtx.destination); // Salurkan ke Speaker HP
+                source.connect(audioDest);            
+                source.connect(audioCtx.destination); 
                 
                 progressStatus.innerText = `Merekam Ayat ${i+1} / ${currentAyatData.length}`;
                 progressBar.style.width = (((i+1) / currentAyatData.length) * 100) + '%';
                 
                 exportCurrentTime = 0;
-                source.start(0); // PUTAR!
+                source.start(0); 
                 
                 const startTime = audioCtx.currentTime;
                 
-                // Sabar menunggu ayat selesai...
                 await new Promise((resolve) => {
                     const progressInterval = setInterval(() => {
-                        // Penghitung waktu mutlak dari AudioContext
                         exportCurrentTime = audioCtx.currentTime - startTime;
                         
                         if (exportCurrentTime >= exportDuration) {
@@ -706,33 +710,50 @@
             }
             
             isDrawing = false;
-            await new Promise(r => setTimeout(r, 1000)); // Gaung / Jeda penutup
+            await new Promise(r => setTimeout(r, 1000)); 
+            totalVideoDuration += 1; // Tambah 1 detik jeda penutup
             recorder.stop();
             
             if (audioCtx.state !== 'closed') audioCtx.close();
             
             recorder.onstop = () => {
-                progressStatus.innerText = "Mematangkan File Video MP4...";
+                progressStatus.innerText = "Mematangkan File Video CapCut...";
                 
-                const blob = new Blob(chunks, { type: mimeType }); 
-                const url = URL.createObjectURL(blob);
+                const rawBlob = new Blob(chunks, { type: mimeType }); 
                 
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `Quran_Overlay_Video${fileExt}`;
-                document.body.appendChild(a);
-                a.click();
-                
-                setTimeout(() => {
-                    URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                    modal.classList.add('hidden');
-                    modal.classList.remove('flex');
-                    isExporting = false;
-                    currentAyatIndex = 0; renderAyatToScreen(0); 
-                    showMessage(`Video ${fileExt.toUpperCase()} berhasil diunduh!`, "success");
-                }, 1500);
+                const doDownload = (finalBlob) => {
+                    const url = URL.createObjectURL(finalBlob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `Quran_Overlay_CapCut${fileExt}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    setTimeout(() => {
+                        URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        modal.classList.add('hidden');
+                        modal.classList.remove('flex');
+                        isExporting = false;
+                        currentAyatIndex = 0; renderAyatToScreen(0); 
+                        showMessage(`Video berhasil diunduh! Siap untuk CapCut.`, "success");
+                    }, 1500);
+                };
+
+                if (fileExt === '.webm') {
+                    progressStatus.innerText = "Menyuntikkan Metadata Durasi (Wajib untuk CapCut)...";
+                    const script = document.createElement('script');
+                    script.src = "https://cdn.jsdelivr.net/npm/fix-webm-duration@1.0.6/fix-webm-duration.js";
+                    script.onload = () => {
+                        ysFixWebmDuration(rawBlob, totalVideoDuration * 1000, function(fixedBlob) {
+                            doDownload(fixedBlob);
+                        });
+                    };
+                    document.body.appendChild(script);
+                } else {
+                    doDownload(rawBlob);
+                }
             };
 
         } catch (err) {
