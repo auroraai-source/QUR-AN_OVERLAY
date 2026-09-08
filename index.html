@@ -486,7 +486,7 @@
                 setTimeout(() => { 
                     renderAyatToScreen(currentAyatIndex + 1);
                     playAudio();
-                }, 500); // Jeda perpindahan ayat
+                }, 0); // Jeda dipercepat dari 500ms menjadi 0ms (langsung nyambung)
             } else {
                 stopAudio();
                 showMessage("Pembacaan selesai.", "success");
@@ -636,7 +636,12 @@
                     ctx.direction = "rtl";
                     const maxTextWidth = canvas.width - 80; 
                     
-                    ctx.fillStyle = "#FFD700";
+                    // EFEK TENGGELAM SAAT EXPORT VIDEO BERJALAN
+                    if (exportCurrentTime > 0.1) {
+                        ctx.fillStyle = "rgba(255, 215, 0, 0.1)"; // Ditenggelamkan (Sisa 10%)
+                    } else {
+                        ctx.fillStyle = "#FFD700"; // Kuning Terang (Saat Standby)
+                    }
                     ctx.shadowBlur = 0; 
                     const bottomY = wrapCanvasText(ctx, ayat.arab, canvas.width/2, 350, maxTextWidth, 90);
                     
@@ -700,7 +705,13 @@
                 }
                 
                 const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-                exportDuration = audioBuffer.duration;
+                
+                // --- PENGHILANG JEDA LAMA (SILENCE TRIMMER) ---
+                // MP3 bawaan server memiliki keheningan ~1.2 detik di akhir.
+                // Kita potong durasinya agar ayat selanjutnya langsung menyambung (Overlap).
+                const originalDuration = audioBuffer.duration;
+                const trimSilence = 1.2; 
+                exportDuration = originalDuration > 1.8 ? originalDuration - trimSilence : originalDuration;
                 totalVideoDuration += exportDuration; 
                 
                 const source = audioCtx.createBufferSource();
