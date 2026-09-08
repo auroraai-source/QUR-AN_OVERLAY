@@ -2,956 +2,748 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Qur'an Overlay Studio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Qur'an Overlay Studio Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Amiri+Quran&display=swap" rel="stylesheet">
-    
     <style>
-        :root {
-            --primary: #10b981; 
-            --primary-dark: #059669; 
-            --accent: #ec4899; 
-            --surface: #ffffff;
-            --background: #ecfdf5; 
-            --text: #1f2937;
-            --text-secondary: #4b5563;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        @font-face {
+            font-family: 'Uthmani';
+            src: url('https://themes.quran.com/assets/fonts/quran/hafs/uthmanic/UthmanicHafs1-Ver18.woff2') format('woff2');
+            font-display: swap;
         }
 
         body {
             font-family: 'Inter', sans-serif;
             background-color: #0f172a; 
-            color: var(--text);
-            overflow: hidden; 
-            touch-action: manipulation;
+            margin: 0; padding: 0;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100dvh; overflow: hidden; color: #333;
         }
 
-        .arabic-text {
-            font-family: 'Amiri Quran', serif;
-            direction: rtl;
+        .phone-frame {
+            width: 100%; max-width: 420px; height: 100dvh;
+            background-color: #f0fdf4; position: relative;
+            display: flex; flex-direction: column; overflow: hidden;
         }
 
-        @media (min-width: 640px) {
+        @media (min-width: 421px) {
             .phone-frame {
-                border-radius: 48px;
-                border: 14px solid #10b981; 
-                height: 90vh;
-                max-height: 860px;
-                background-color: var(--background); 
-                box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.6); 
-                position: relative;
-                overflow: hidden; 
-                display: flex;
-                flex-direction: column;
-            }
-        }
-        
-        @media (max-width: 639px) {
-            .phone-frame {
-                width: 100vw;
-                height: 100dvh;
-                background-color: var(--background);
-                display: flex;
-                flex-direction: column;
-                overflow: hidden;
+                height: 90dvh; border-radius: 2.5rem;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+                border: 12px solid #10b981;
             }
         }
 
-        .preview-container {
-            width: 100%;
-            aspect-ratio: 9 / 16;
-            background-color: #0b0f19;
-            position: relative;
-            overflow: hidden;
-            border-radius: 12px;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+        #splash-screen {
+            position: absolute; inset: 0; background-color: #050b14;
+            z-index: 1000; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            transition: opacity 0.8s ease-out, visibility 0.8s; cursor: pointer;
         }
-
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        .tab-content.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .overflow-y-auto::-webkit-scrollbar { width: 6px; }
-        .overflow-y-auto::-webkit-scrollbar-track { background: transparent; }
-        .overflow-y-auto::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .overflow-y-auto::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        .toggle-checkbox:checked { right: 0; border-color: var(--primary); }
-        .toggle-checkbox:checked + .toggle-label { background-color: var(--primary); }
         
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 16px;
-            width: 16px;
-            border-radius: 50%;
-            background: var(--primary);
-            cursor: pointer;
-            margin-top: -6px;
+        @keyframes floatLogo {
+            0% { transform: translateY(0px); filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.3)); }
+            50% { transform: translateY(-15px); filter: drop-shadow(0 0 35px rgba(16, 185, 129, 0.6)); }
+            100% { transform: translateY(0px); filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.3)); }
         }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 4px;
-            cursor: pointer;
-            background: #cbd5e1;
-            border-radius: 2px;
+        .logo-image {
+            width: 75%; max-width: 250px;
+            animation: floatLogo 4s ease-in-out infinite;
+            object-fit: contain; 
         }
 
-        #overlay-content::-webkit-scrollbar {
-            display: none;
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .tab-content { display: none; flex: 1; overflow-y: auto; padding-bottom: 20px; }
+        .tab-content.active { display: flex; flex-direction: column; }
+        
+        .bg-pink-transparent { background-color: rgba(236, 72, 153, 0.08); }
+        #tab-studio { background-color: #050b14; color: white; padding: 0; position: relative; transition: background-color 0.3s; }
+        
+        .canvas-container {
+            display: flex; flex-direction: column; justify-content: flex-start; align-items: center;
+            height: 100%; padding: 2rem; padding-top: 4rem; overflow-y: auto; width: 100%;
         }
+
+        .font-arabic { font-family: 'Uthmani', serif; line-height: 1.8; }
+        .karaoke-wrapper { position: relative; width: 100%; text-align: center; display: flex; flex-direction: column; align-items: center;}
+        
+        .ayat-base { color: #FFD700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); width: 100%; white-space: pre-wrap; word-wrap: break-word; }
+        .ayat-mask {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.9);
+            clip-path: inset(0 0 0 100%); /* RTL Masking */
+            pointer-events: none; white-space: pre-wrap; word-wrap: break-word;
+            display: flex; flex-direction: column; justify-content: flex-start;
+        }
+
+        #custom-alert {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+            background: rgba(220, 38, 38, 0.95); color: white; padding: 12px 24px;
+            border-radius: 9999px; font-size: 12px; font-weight: bold;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); z-index: 2000;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            white-space: nowrap;
+        }
+        #custom-alert.show { transform: translateX(-50%) translateY(0); }
+
+        #hidden-render-canvas { display: none; }
+        
+        body.is-recording .phone-frame { border: none; border-radius: 0; max-width: 100%; }
+        body.is-recording .app-header, body.is-recording .bottom-nav, body.is-recording .audio-bar { display: none !important; }
+        body.is-recording #tab-studio { padding: 0; margin: 0; height: 100dvh; }
     </style>
 </head>
+<body>
 
-<body class="h-[100dvh] w-screen flex items-center justify-center">
-
-    <div class="phone-frame w-full max-w-[400px]">
-        
-        <!-- App Top Bar -->
-        <div class="px-6 pt-10 pb-4 bg-white shadow-sm z-10 sticky top-0">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-500">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                    </div>
-                    <div>
-                        <h1 class="font-bold text-gray-800 leading-tight">Qur'an Overlay</h1>
-                        <p class="text-[10px] text-emerald-500 font-medium">Mobile Video Studio</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button id="btn-export" class="p-2 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition-colors flex items-center gap-1 shadow-md shadow-pink-500/30 text-xs font-semibold">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                        Export
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Scrollable Content Area -->
-        <div class="flex-1 overflow-y-auto px-6 py-4 relative z-0">
-            
-            <!-- TAB 1: DATA SURAH -->
-            <div id="tab-surah" class="tab-content active space-y-6">
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100">
-                    <h2 class="text-xs font-bold text-emerald-600 mb-4 uppercase tracking-wider flex items-center gap-2">
-                        Pilih Surah & Ayat
-                    </h2>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1 font-medium">Surah Al-Qur'an</label>
-                            <select id="surah-select" class="w-full bg-pink-500/10 border border-pink-200 text-gray-800 text-sm rounded-xl focus:ring-pink-500 focus:border-pink-500 block p-3 outline-none transition-shadow">
-                                <option value="">Memuat daftar Surah...</option>
-                            </select>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs text-gray-500 mb-1 font-medium">Dari Ayat</label>
-                                <input type="number" id="ayat-start" min="1" value="1" class="w-full bg-pink-500/10 border border-pink-200 text-gray-800 text-sm rounded-xl focus:ring-pink-500 focus:border-pink-500 block p-3 outline-none transition-shadow">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-500 mb-1 font-medium">Sampai Ayat</label>
-                                <input type="number" id="ayat-end" min="1" value="3" class="w-full bg-pink-500/10 border border-pink-200 text-gray-800 text-sm rounded-xl focus:ring-pink-500 focus:border-pink-500 block p-3 outline-none transition-shadow">
-                            </div>
-                        </div>
-
-                        <div class="flex items-center pt-2">
-                            <input id="include-bismillah" type="checkbox" checked class="w-4 h-4 text-emerald-500 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500 focus:ring-2">
-                            <label for="include-bismillah" class="ml-2 text-sm font-medium text-gray-700">Sertakan Basmalah di awal</label>
-                        </div>
-
-                        <button id="btn-load" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-4 rounded-xl transition-all active:scale-[0.98] mt-2 shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            Muat Data Ayat
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100 mb-10">
-                    <h2 class="text-xs font-bold text-pink-500 mb-4 uppercase tracking-wider flex items-center gap-2">
-                        Audio & Qari
-                    </h2>
-                    <div>
-                        <!-- Menggunakan Qari API yang valid -->
-                        <select id="qari-select" class="w-full bg-pink-500/10 border border-pink-200 text-gray-800 text-sm rounded-xl focus:ring-pink-500 focus:border-pink-500 block p-3 outline-none">
-                            <option value="Alafasy_128kbps">Mishary Rashid Alafasy</option>
-                            <option value="Abdurrahmaan_As-Sudais_192kbps">Abdurrahmaan As-Sudais</option>
-                            <option value="Abdul_Basit_Murattal_192kbps">Abdul Basit (Murattal)</option>
-                            <option value="Husary_128kbps">Mahmoud Khalil Al-Husary</option>
-                            <option value="Minshawy_Murattal_128kbps">Mohamed Siddiq al-Minshawi</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 2: STUDIO (CANVAS & PLAYER) -->
-            <div id="tab-studio" class="tab-content">
-                <div class="flex justify-center mb-6">
-                    <div id="export-area" class="preview-container w-64 md:w-72 relative transition-all duration-300">
-                        
-                        <!-- Overlay Khusus saat Export berjalan -->
-                        <div id="recording-indicator" class="absolute inset-0 bg-black/80 z-50 hidden flex-col items-center justify-center backdrop-blur-sm">
-                            <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-                            <span class="text-white text-sm font-bold animate-pulse text-center">🔴 MEREKAM VIDEO...</span>
-                            <span id="export-progress-text" class="text-emerald-400 text-xs mt-2 font-medium text-center px-4">Memproses...</span>
-                        </div>
-
-                        <div id="overlay-content" class="absolute inset-0 flex flex-col justify-center px-4 py-8 pointer-events-none transition-all duration-300">
-                            
-                            <div id="empty-state" class="flex flex-col items-center justify-center h-full text-white/70 text-center">
-                                <svg class="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                                <p class="text-sm">Belum ada ayat dimuat.<br>Pilih surah di tab pertama.</p>
-                            </div>
-
-                            <div id="quran-text-container" class="w-full h-full relative hidden">
-                                <!-- Data ayat akan dimasukkan lewat JS ke sini -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-center text-xs text-gray-500 mb-8 px-4 font-medium" id="status-info">
-                    Sistem siap. Silakan muat ayat di tab Surah.
-                </div>
-            </div>
-
-            <!-- TAB 3: DESIGN SETTINGS -->
-            <div id="tab-design" class="tab-content space-y-6 mb-10">
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100">
-                    <h2 class="text-xs font-bold text-emerald-600 mb-4 uppercase tracking-wider">Background & Layout</h2>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-2 font-medium">Tipe Latar Belakang</label>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button class="bg-emerald-50 border-2 border-transparent hover:border-emerald-300 text-emerald-700 py-2 rounded-lg text-sm font-medium" id="bg-green">Green Screen</button>
-                                <button class="bg-black border-2 border-gray-600 text-white py-2 rounded-lg text-sm font-medium" id="bg-black">Hitam Pekat</button>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-2 font-medium mt-4">Posisi Teks (Vertikal)</label>
-                            <input type="range" id="pos-y" min="0" max="100" value="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100">
-                    <h2 class="text-xs font-bold text-emerald-600 mb-4 uppercase tracking-wider">Tampilan Teks</h2>
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm font-medium text-gray-700">Tampilkan Terjemahan</span>
-                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                <input type="checkbox" name="toggle" id="toggle-terjemahan" checked class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10"/>
-                                <label for="toggle-terjemahan" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1 font-medium">Ukuran Teks Arab</label>
-                            <input type="range" id="size-arab" min="16" max="60" value="28" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1 font-medium">Warna Teks Arab</label>
-                            <div class="flex items-center gap-3">
-                                <input type="color" id="color-arab" value="#facc15" class="h-10 w-16 p-1 rounded bg-gray-50 border border-gray-200 cursor-pointer">
-                            </div>
-                        </div>
-                        <div class="pt-2 border-t border-gray-100">
-                            <label class="block text-xs text-gray-500 mb-1 font-medium">Ukuran Terjemahan</label>
-                            <input type="range" id="size-indo" min="10" max="30" value="14" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div> <!-- End Scrollable Area -->
-
-        <!-- Persistent Audio Player at Bottom -->
-        <div class="bg-white border-t border-gray-100 px-6 py-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-20">
-            <audio id="audio-player" class="hidden"></audio>
-            
-            <div class="flex flex-col gap-3">
-                <div class="flex items-center gap-3 text-[10px] font-medium text-gray-500">
-                    <span id="time-current">0:00</span>
-                    <div class="flex-1 relative w-full h-2 bg-gray-200 rounded-full overflow-hidden cursor-pointer" id="progress-container">
-                        <div id="progress-bar" class="absolute top-0 left-0 h-full bg-emerald-500 w-0 transition-all duration-100"></div>
-                    </div>
-                    <span id="time-total">0:00</span>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                    <div class="text-xs font-semibold text-gray-800 truncate w-32" id="now-playing-text">
-                        Audio belum dimuat
-                    </div>
-                    <div class="flex items-center justify-center gap-4">
-                        <button id="btn-prev" class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                        </button>
-                        
-                        <button id="btn-play" class="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 transition-transform active:scale-95 shadow-md shadow-emerald-500/40">
-                            <svg id="icon-play" class="w-6 h-6 ml-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
-                            <svg id="icon-pause" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
-                        </button>
-                        
-                        <button id="btn-next" class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                        </button>
-                    </div>
-                    <div class="w-32 flex justify-end"></div>
-                </div>
-            </div>
-
-            <!-- Tab Navigation Dipindah ke Bawah -->
-            <div class="flex border-t border-gray-100 mt-4 pt-2 relative">
-                <button class="tab-btn flex-1 py-2 text-emerald-600 transition-colors flex flex-col justify-center items-center gap-1" data-target="tab-surah">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
-                    <span class="text-[10px] font-semibold">Surah</span>
-                </button>
-                <button class="tab-btn flex-1 py-2 text-gray-500 hover:text-emerald-500 transition-colors flex flex-col justify-center items-center gap-1" data-target="tab-studio">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span class="text-[10px] font-medium">Studio</span>
-                </button>
-                <button class="tab-btn flex-1 py-2 text-gray-500 hover:text-emerald-500 transition-colors flex flex-col justify-center items-center gap-1" data-target="tab-design">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
-                    <span class="text-[10px] font-medium">Desain</span>
-                </button>
-            </div>
-        </div>
-
+    <div id="splash-screen" onclick="hideSplash()">
+        <img src="Logo Quran Overlay_3.png" alt="Quran Overlay" class="logo-image" onerror="this.onerror=null; this.src='https://placehold.co/400x400/050b14/10b981?text=Quran+Overlay'">
+        <p class="text-emerald-400 text-xs mt-8 tracking-[0.2em] animate-pulse">KETUK UNTUK MEMULAI</p>
     </div>
 
-    <script>
-        let currentAyatData = [];
-        let currentAudioList = [];
-        let currentPlayingIndex = 0;
-        let surahDataMap = {}; 
-        const apiBaseUrl = "https://api.quran.gading.dev/surah";
+    <!-- Resolusi HD 720x1280 agar RAM HP tidak crash saat dirender -->
+    <canvas id="hidden-render-canvas" width="720" height="1280"></canvas>
+    
+    <div id="custom-alert">Pesan Error</div>
 
-        // Variabel untuk Perekaman Latar Belakang (Export)
-        let isExporting = false;
-        let mediaRecorder;
-        let recordedChunks = [];
-        let audioCtx, sourceNode, destNode;
-        let exportAnimationFrame;
-        
-        // Kanvas Tersembunyi untuk merender Video (Resolusi 720x1280)
-        const recordCanvas = document.createElement('canvas');
-        recordCanvas.width = 720;
-        recordCanvas.height = 1280;
+    <div class="phone-frame">
+        <div class="app-header p-4 flex justify-between items-center bg-white shadow-sm z-10 shrink-0">
+            <div class="flex items-center gap-3">
+                <img src="Logo Quran Overlay_3.png" alt="Logo" class="w-10 h-10 rounded-md object-cover" onerror="this.onerror=null; this.src='https://placehold.co/40x40/10b981/ffffff?text=Q'">
+                <div>
+                    <h1 class="font-bold text-gray-800 leading-tight text-sm">Qur'an Overlay</h1>
+                    <p class="text-[10px] text-emerald-500 font-semibold">Mobile Video Studio</p>
+                </div>
+            </div>
+            <button id="btn-export" class="bg-pink-500 hover:bg-pink-600 text-white text-xs font-bold py-2 px-3 rounded-lg shadow-md flex items-center gap-1 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256"><path d="M216,112v96a16,16,0,0,1-16,16H56a16,16,0,0,1-16-16V112A16,16,0,0,1,56,96H80a8,8,0,0,1,0,16H56v96H200V112H176a8,8,0,0,1,0-16h24A16,16,0,0,1,216,112ZM133.66,21.66a8,8,0,0,0-11.32,0l-40,40A8,8,0,0,0,93.66,73.66L120,47.31V152a8,8,0,0,0,16,0V47.31l26.34,26.35a8,8,0,0,0,11.32-11.32Z"></path></svg>
+                Export
+            </button>
+        </div>
 
-        // Mendapatkan Elemen UI
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        const tabContents = document.querySelectorAll('.tab-content');
-        const surahSelect = document.getElementById('surah-select');
-        const ayatStartInput = document.getElementById('ayat-start');
-        const ayatEndInput = document.getElementById('ayat-end');
-        const qariSelect = document.getElementById('qari-select');
-        const btnLoad = document.getElementById('btn-load');
-        const includeBismillahCheckbox = document.getElementById('include-bismillah');
-        const quranTextContainer = document.getElementById('quran-text-container');
-        const emptyState = document.getElementById('empty-state');
-        const overlayContent = document.getElementById('overlay-content');
-        const exportArea = document.getElementById('export-area');
-        const recordingIndicator = document.getElementById('recording-indicator');
-        const statusInfo = document.getElementById('status-info');
-
-        const posYInput = document.getElementById('pos-y');
-        const sizeArabInput = document.getElementById('size-arab');
-        const sizeIndoInput = document.getElementById('size-indo');
-        const colorArabInput = document.getElementById('color-arab');
-        const toggleTerjemahan = document.getElementById('toggle-terjemahan');
-        const bgGreenBtn = document.getElementById('bg-green');
-        const bgBlackBtn = document.getElementById('bg-black');
-
-        const audioPlayer = document.getElementById('audio-player');
-        const btnPlay = document.getElementById('btn-play');
-        const iconPlay = document.getElementById('icon-play');
-        const iconPause = document.getElementById('icon-pause');
-        const btnPrev = document.getElementById('btn-prev');
-        const btnNext = document.getElementById('btn-next');
-        const progressBar = document.getElementById('progress-bar');
-        const timeCurrent = document.getElementById('time-current');
-        const timeTotal = document.getElementById('time-total');
-        const nowPlayingText = document.getElementById('now-playing-text');
-        
-        const btnExport = document.getElementById('btn-export');
-
-        // Helper Error/Pesan
-        function showMessage(msg, isError = false) {
-            statusInfo.innerHTML = `<span class="${isError ? 'text-red-500' : 'text-emerald-600'} font-bold text-[11px] leading-tight block">${msg}</span>`;
-            if (isError) setTimeout(() => { statusInfo.innerHTML = "Sistem siap. Silakan muat ayat di tab Surah."; }, 3500);
-        }
-
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                tabBtns.forEach(b => {
-                    b.classList.remove('text-emerald-600');
-                    b.classList.add('text-gray-500');
-                    b.querySelector('span').classList.remove('font-semibold');
-                    b.querySelector('span').classList.add('font-medium');
-                });
-                tabContents.forEach(c => c.classList.remove('active'));
-                btn.classList.remove('text-gray-500');
-                btn.classList.add('text-emerald-600');
-                btn.querySelector('span').classList.remove('font-medium');
-                btn.querySelector('span').classList.add('font-semibold');
-                document.getElementById(btn.getAttribute('data-target')).classList.add('active');
-            });
-        });
-
-        async function fetchSurahList() {
-            try {
-                const response = await fetch(apiBaseUrl);
-                const data = await response.json();
-                
-                surahSelect.innerHTML = '';
-                data.data.forEach(surah => {
-                    surahDataMap[surah.number] = surah; 
-                    const option = document.createElement('option');
-                    option.value = surah.number;
-                    option.textContent = `${surah.number}. ${surah.name.transliteration.id} (${surah.name.short}) - ${surah.numberOfVerses} Ayat`;
-                    surahSelect.appendChild(option);
-                });
-
-                surahSelect.addEventListener('change', () => {
-                    const selectedSurah = surahDataMap[surahSelect.value];
-                    if (selectedSurah) {
-                        ayatStartInput.value = 1;
-                        ayatEndInput.value = selectedSurah.numberOfVerses;
-                    }
-                });
-
-                if (data.data.length > 0) {
-                    surahSelect.value = data.data[0].number;
-                    surahSelect.dispatchEvent(new Event('change'));
-                }
-            } catch (error) {
-                surahSelect.innerHTML = '<option value="">Gagal memuat data</option>';
-            }
-        }
-        fetchSurahList();
-
-        btnLoad.addEventListener('click', async () => {
-            const surahNumber = surahSelect.value;
-            const start = parseInt(ayatStartInput.value);
-            const end = parseInt(ayatEndInput.value);
-            const includeBismillah = includeBismillahCheckbox.checked;
-            const selectedQari = qariSelect.value;
-
-            if (!surahNumber) return showMessage("Pilih surah terlebih dahulu!", true);
-            if (start > end) return showMessage("Ayat awal tidak boleh lebih besar dari ayat akhir!", true);
-
-            btnLoad.disabled = true;
-            showMessage("Mempersiapkan sistem unduhan...");
-            
-            try {
-                // Bersihkan memori audio sebelumnya
-                currentAyatData = [];
-                currentAudioList.forEach(url => {
-                    if(url.startsWith('blob:')) URL.revokeObjectURL(url);
-                });
-                currentAudioList = [];
-
-                btnLoad.innerHTML = `<span class="animate-pulse">Menghubungkan Server...</span>`;
-                const response = await fetch(`${apiBaseUrl}/${surahNumber}`);
-                const result = await response.json();
-                const surahData = result.data;
-                let verses = surahData.verses.filter(v => v.number.inSurah >= start && v.number.inSurah <= end);
-                
-                let totalItems = verses.length + (includeBismillah && start === 1 && surahData.preBismillah ? 1 : 0);
-                let loadedCount = 0;
-
-                // Fungsi canggih untuk mengunduh mp3 ke RAM (Agar saat play/karaoke tidak lag sedetik pun)
-                async function fetchAudioBlob(url, ayatObj) {
-                    try {
-                        const audioRes = await fetch(url, { mode: 'cors' });
-                        if (!audioRes.ok) throw new Error("Audio Gagal Diunduh");
-                        const blob = await audioRes.blob();
-                        // WAJIB: Beri tahu browser bahwa ini adalah file audio MP3 yang sah
-                        const safeBlob = new Blob([blob], { type: 'audio/mpeg' });
-                        currentAudioList.push(URL.createObjectURL(safeBlob)); // Simpan mp3 ke RAM
-                        currentAyatData.push(ayatObj);
-                    } catch (e) {
-                        console.warn("Gagal load blob, fallback ke URL asal", url);
-                        currentAudioList.push(url); // Fallback ke URL jika diblokir
-                        currentAyatData.push(ayatObj);
-                    }
-                    loadedCount++;
-                    btnLoad.innerHTML = `<span class="animate-pulse">Memuat Ayat: ${loadedCount} / ${totalItems}</span>`;
-                    showMessage(`Memuat file MP3 ayat ${loadedCount} dari ${totalItems}... <br>Sistem memberikan jeda sesaat agar proses aman.`);
-                }
-
-                // Format nomor ayat untuk EveryAyah (3 digit, contoh: 001002.mp3)
-                const paddedSurah = String(surahNumber).padStart(3, '0');
-
-                // 1. Muat Basmalah
-                if (includeBismillah && surahNumber !== "1" && surahNumber !== "9" && start === 1 && surahData.preBismillah) {
-                     await fetchAudioBlob(
-                         `https://everyayah.com/data/${selectedQari}/001001.mp3`,
-                         {
-                             text: surahData.preBismillah.text.arab,
-                             translationId: "Dengan menyebut nama Allah Yang Maha Pengasih lagi Maha Penyayang.",
-                             verseNumber: 0
-                         }
-                     );
-                     // Jeda awal
-                     await new Promise(r => setTimeout(r, 3500));
-                }
-
-                // 2. Muat Setiap Ayat
-                for (let i = 0; i < verses.length; i++) {
-                    const v = verses[i];
-                    const paddedAyat = String(v.number.inSurah).padStart(3, '0');
-                    const audioUrl = `https://everyayah.com/data/${selectedQari}/${paddedSurah}${paddedAyat}.mp3`;
-
-                    await fetchAudioBlob(
-                         audioUrl,
-                         {
-                             text: v.text.arab,
-                             translationId: v.translation.id,
-                             verseNumber: v.number.inSurah
-                         }
-                    );
-                    
-                    // JEDA 3.5 DETIK ANTAR AYAT UNTUK MENGHINDARI RATE LIMIT API
-                    if (i < verses.length - 1) {
-                        await new Promise(r => setTimeout(r, 3500)); 
-                    }
-                }
-
-                btnLoad.innerHTML = `Menyusun Tampilan...`;
-                renderQuranText();
-                
-                currentPlayingIndex = 0;
-                loadAudio(0);
-                
-                statusInfo.innerHTML = "✅ Data Sukses Dimuat! Putar untuk uji Karaoke, atau langsung Export.";
-                tabBtns[1].click(); // Lompat ke Tab Studio
-
-            } catch (error) {
-                console.error(error);
-                alert("Terjadi kesalahan jaringan.");
-                statusInfo.innerHTML = "❌ Gagal memuat data.";
-            } finally {
-                btnLoad.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Muat Data Ayat';
-                btnLoad.disabled = false;
-            }
-        });
-
-        function renderQuranText() {
-            if (currentAyatData.length === 0) return;
-
-            emptyState.style.display = 'none';
-            quranTextContainer.classList.remove('hidden');
-            quranTextContainer.innerHTML = '';
-
-            const surahName = surahDataMap[surahSelect.value]?.name.transliteration.id.toUpperCase() || "SURAH";
-
-            currentAyatData.forEach((ayat, index) => {
-                const div = document.createElement('div');
-                // Absolute Inset & Transition membuat efek Fade In/Out (Karaoke Visual)
-                div.className = `ayat-block absolute inset-0 flex flex-col justify-between py-12 px-6 transition-opacity duration-500 ease-in-out ${index === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`;
-                
-                const showTranslation = toggleTerjemahan.checked;
-                const headerText = ayat.verseNumber === 0 ? `${surahName} • BASMALAH` : `${surahName} • AYAT ${ayat.verseNumber}`;
-                const textColor = colorArabInput.value;
-                const arabSize = sizeArabInput.value;
-                const indoSize = sizeIndoInput.value;
-
-                div.innerHTML = `
-                    <div class="text-center w-full mt-4">
-                        <h3 class="text-[10px] tracking-[0.25em] text-[#FBBF24] uppercase font-bold drop-shadow-md">${headerText}</h3>
-                    </div>
-                    
-                    <div class="flex-1 flex items-center justify-center w-full">
-                        <div class="arabic-text leading-[2.5] text-center font-bold transition-all duration-300" 
-                             style="color: ${textColor}; font-size: ${arabSize}px; text-shadow: 0 0 10px ${textColor}80, 0 0 20px ${textColor}40;">
-                            ${ayat.text}
+        <div class="main-content">
+            <div id="tab-surah" class="tab-content active p-4 space-y-4">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-50">
+                    <h2 class="text-xs font-bold text-emerald-600 mb-3 uppercase">Pilih Surah & Ayat</h2>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[11px] text-gray-500 font-medium mb-1 block">Surah Al-Qur'an</label>
+                            <select id="surah-select" class="w-full bg-pink-transparent border border-pink-100 text-gray-700 text-sm rounded-xl focus:ring-emerald-500 p-2.5 outline-none"></select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[11px] text-gray-500 font-medium mb-1 block">Dari Ayat</label>
+                                <input type="number" id="ayat-start" value="1" min="1" class="w-full bg-pink-transparent border border-pink-100 text-gray-700 text-sm rounded-xl p-2.5 outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[11px] text-gray-500 font-medium mb-1 block">Sampai Ayat</label>
+                                <input type="number" id="ayat-end" value="7" min="1" class="w-full bg-pink-transparent border border-pink-100 text-gray-700 text-sm rounded-xl p-2.5 outline-none">
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 pt-2">
+                            <input type="checkbox" id="check-bismillah" checked class="w-4 h-4 text-emerald-500 rounded focus:ring-emerald-500">
+                            <label for="check-bismillah" class="text-xs text-gray-600 font-medium">Sertakan Basmalah di awal</label>
                         </div>
                     </div>
-                    
-                    ${showTranslation ? `
-                    <div class="flex flex-col items-center justify-end mb-6 w-full">
-                        <div class="translation-text font-sans text-[#FBBF24] font-semibold text-center mb-3 leading-snug px-4 transition-all duration-300" style="font-size: ${indoSize}px;">
-                            ${ayat.translationId}
-                        </div>
+                    <button id="btn-load" class="mt-4 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all active:scale-95">
+                        Muat Data Ayat
+                    </button>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-50">
+                    <h2 class="text-xs font-bold text-pink-500 mb-3 uppercase">Audio & Qari (Anti Copyright)</h2>
+                    <select id="qari-select" class="w-full bg-pink-transparent border border-pink-100 text-gray-700 text-sm rounded-xl p-2.5 outline-none">
+                        <option value="Alafasy_128kbps">Mishary Rashid Alafasy</option>
+                        <option value="Husary_128kbps">Mahmoud Khalil Al-Husary</option>
+                        <option value="Abdurrahmaan_As-Sudais_192kbps">Abdurrahman As-Sudais</option>
+                    </select>
+                    <p class="text-[9px] text-gray-400 mt-2 italic">*Menggunakan Server Stabil EveryAyah.</p>
+                </div>
+            </div>
+
+            <div id="tab-studio" class="tab-content relative">
+                <div class="canvas-container">
+                    <div id="ui-header" class="text-[#FFD700] text-xs font-bold tracking-widest uppercase mb-12 transition-opacity duration-300 text-center">NAMA SURAH</div>
+
+                    <div class="karaoke-wrapper px-2 mb-8">
+                        <div id="ui-arab-base" class="ayat-base font-arabic text-[2.2rem] leading-loose" dir="rtl"></div>
+                        <div id="ui-arab-mask" class="ayat-mask font-arabic text-[2.2rem] leading-loose" dir="rtl"></div>
                     </div>
-                    ` : ''}
-                `;
-                quranTextContainer.appendChild(div);
-            });
-            updateLayout();
-        }
 
-        function loadAudio(index) {
-            if (index < 0 || index >= currentAudioList.length) return;
-            
-            audioPlayer.src = currentAudioList[index];
-            audioPlayer.load(); 
-            currentPlayingIndex = index;
-            
-            const surahName = surahSelect.options[surahSelect.selectedIndex]?.text.split('(')[0].trim() || "Surah";
-            const verseNum = currentAyatData[index].verseNumber;
-            nowPlayingText.textContent = verseNum === 0 ? `${surahName} - Basmalah` : `${surahName} - Ayat ${verseNum}`;
-            
-            // Trigger Efek Karaoke (Ganti tampilan ayat sesuai audio yg aktif)
-            highlightAyat(index);
-        }
+                    <div id="ui-translation" class="w-[90%] border-t border-gray-700 pt-4 mt-2 transition-opacity duration-300">
+                        <p id="ui-indo" class="text-center text-[#FFD700] font-semibold text-sm mb-2"></p>
+                        <p id="ui-eng" class="text-center text-[#b89f45] italic text-xs font-light"></p>
+                    </div>
+                </div>
+            </div>
 
-        function highlightAyat(index) {
-            document.querySelectorAll('.ayat-block').forEach((block, i) => {
-                if (i === index) {
-                    block.classList.remove('opacity-0', 'z-0', 'pointer-events-none');
-                    block.classList.add('opacity-100', 'z-10');
-                } else {
-                    block.classList.remove('opacity-100', 'z-10');
-                    block.classList.add('opacity-0', 'z-0', 'pointer-events-none');
-                }
-            });
-        }
+            <div id="tab-desain" class="tab-content p-4 space-y-4">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-50">
+                    <h2 class="text-xs font-bold text-emerald-600 mb-3 uppercase">Pengaturan Teks & Warna</h2>
+                    <div class="mb-4">
+                        <label class="text-[11px] text-gray-500 font-medium mb-1 flex justify-between">
+                            <span>Ukuran Arab</span><span id="val-size-arab">2.2rem</span>
+                        </label>
+                        <input type="range" id="size-arab" min="1.5" max="3.5" step="0.1" value="2.2" class="w-full accent-emerald-500">
+                    </div>
+                    <div class="mb-4">
+                        <label class="text-[11px] text-gray-500 font-medium mb-1 flex justify-between">
+                            <span>Ukuran Terjemahan</span><span id="val-size-terj">0.875rem</span>
+                        </label>
+                        <input type="range" id="size-terjemahan" min="0.6" max="1.5" step="0.05" value="0.875" class="w-full accent-emerald-500">
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-gray-500 font-medium mb-1 block">Warna Latar Studio</label>
+                        <input type="color" id="color-picker" value="#050b14" class="w-full h-10 p-1 rounded border-2 border-emerald-500 cursor-pointer">
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        function playSafe() {
-            if (!audioPlayer.src) return;
-            const playPromise = audioPlayer.play();
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    iconPlay.classList.add('hidden');
-                    iconPause.classList.remove('hidden');
-                }).catch(e => console.warn("Auto-play ditunda", e));
-            }
-        }
+        <div id="loading-overlay" class="absolute inset-0 bg-gray-900/95 z-40 hidden flex-col justify-center items-center text-white">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent mb-4"></div>
+            <p id="loading-text" class="font-semibold text-sm text-center px-4">Memproses...</p>
+        </div>
 
-        function togglePlay() {
-            if (currentAudioList.length === 0) return showMessage("Muat data ayat terlebih dahulu!", true);
-            
-            if (audioPlayer.paused) {
-                playSafe();
-            } else {
-                audioPlayer.pause();
-                iconPause.classList.add('hidden');
-                iconPlay.classList.remove('hidden');
-            }
-        }
+        <div id="export-modal" class="absolute inset-0 bg-gray-900/98 z-50 hidden flex-col justify-center items-center text-white">
+            <div class="animate-spin rounded-full h-14 w-14 border-4 border-pink-500 border-t-transparent mb-4"></div>
+            <h2 class="text-lg font-bold text-white mb-2">Merender Video...</h2>
+            <p id="export-status" class="text-sm text-gray-400 mb-6">Merekam Ayat...</p>
+            <div class="w-64 bg-gray-700 h-2 rounded-full overflow-hidden">
+                <div id="export-progress-bar" class="bg-gradient-to-r from-pink-500 to-emerald-500 h-full w-0 transition-all duration-300"></div>
+            </div>
+            <p class="text-[10px] text-gray-500 mt-4 text-center px-6">Mohon bersabar. Proses render membutuhkan waktu.<br>Video akan otomatis terunduh.</p>
+        </div>
 
-        btnPlay.addEventListener('click', togglePlay);
+        <div class="audio-bar bg-white p-3 border-t border-gray-100 shadow-md z-20 shrink-0 relative">
+            <div class="absolute top-0 left-0 w-full h-0.5 bg-gray-200">
+                <div id="audio-progress" class="h-full bg-emerald-500 w-0 transition-all duration-100"></div>
+            </div>
+            <div class="flex items-center justify-between mt-1">
+                <div class="text-[10px] text-gray-500 font-medium w-16" id="audio-time">0:00</div>
+                <button id="btn-play-pause" class="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+                    <svg id="icon-play" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M240,128a15.74,15.74,0,0,1-7.6,13.51L88.32,229.65a16,16,0,0,1-16.2.3A15.86,15.86,0,0,1,64,216.13V39.87a15.86,15.86,0,0,1,8.12-13.82,16,16,0,0,1,16.2.3L232.4,114.49A15.74,15.74,0,0,1,240,128Z"></path></svg>
+                    <svg id="icon-pause" class="hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M216,48V208a16,16,0,0,1-16,16H160a16,16,0,0,1-16-16V48a16,16,0,0,1,16-16h40A16,16,0,0,1,216,48ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Z"></path></svg>
+                </button>
+                <div class="text-[10px] text-gray-500 font-medium w-16 text-right" id="audio-duration">0:00</div>
+            </div>
+        </div>
+
+        <div class="bottom-nav bg-white border-t border-gray-100 flex justify-around p-2 z-20 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <button onclick="switchTab('surah')" class="nav-btn flex flex-col items-center gap-1 text-emerald-500 w-16 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM40,192V64h72V192Zm176,0H128V64h88V192Z"></path></svg>
+                <span class="text-[9px] font-bold">Surah</span>
+            </button>
+            <button onclick="switchTab('studio')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-16 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm40-88a8,8,0,0,1-8,8H136v24a8,8,0,0,1-16,0V136H96a8,8,0,0,1,0-16h24V96a8,8,0,0,1,16,0v24h24A8,8,0,0,1,168,128Z"></path></svg>
+                <span class="text-[9px] font-bold">Studio</span>
+            </button>
+            <button onclick="switchTab('desain')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-16 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200ZM176,88a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,88Zm0,32a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,120Zm0,32a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,152Z"></path></svg>
+                <span class="text-[9px] font-bold">Desain</span>
+            </button>
+        </div>
+    </div>
+
+<script>
+    // Objek Audio Murni (Anti Blokir & Hemat Memori)
+    const audioCore = new Audio();
+    audioCore.crossOrigin = "anonymous"; // Diperlukan untuk export canvas
+    
+    let currentAyatData = [];
+    let currentAyatIndex = -1;
+    let animationFrameId;
+    let isExporting = false;
+
+    // Data Lengkap 114 Surah (Tidak dipotong sama sekali)
+    const surahNames = [
+        "Al-Fatihah", "Al-Baqarah", "Ali 'Imran", "An-Nisa'", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Taubah", "Yunus",
+        "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr", "An-Nahl", "Al-Isra'", "Al-Kahf", "Maryam", "Taha",
+        "Al-Anbiya'", "Al-Hajj", "Al-Mu'minun", "An-Nur", "Al-Furqan", "Asy-Syu'ara'", "An-Naml", "Al-Qasas", "Al-'Ankabut", "Ar-Rum",
+        "Luqman", "As-Sajdah", "Al-Ahzab", "Saba'", "Fatir", "Ya Sin", "As-Saffat", "Sad", "Az-Zumar", "Ghafir",
+        "Fussilat", "Asy-Syura", "Az-Zukhruf", "Ad-Dukhan", "Al-Jasiyah", "Al-Ahqaf", "Muhammad", "Al-Fath", "Al-Hujurat", "Qaf",
+        "Az-Zariyat", "At-Tur", "An-Najm", "Al-Qamar", "Ar-Rahman", "Al-Waqi'ah", "Al-Hadid", "Al-Mujadilah", "Al-Hasyr", "Al-Mumtahanah",
+        "As-Saff", "Al-Jumu'ah", "Al-Munafiqun", "At-Tagabun", "At-Talaq", "At-Tahrim", "Al-Mulk", "Al-Qalam", "Al-Haqqah", "Al-Ma'arij",
+        "Nuh", "Al-Jinn", "Al-Muzzammil", "Al-Muddassir", "Al-Qiyamah", "Al-Insan", "Al-Mursalat", "An-Naba'", "An-Nazi'at", "'Abasa",
+        "At-Takwir", "Al-Infitar", "Al-Mutaffifin", "Al-Insyiqaq", "Al-Buruj", "At-Tariq", "Al-A'la", "Al-Gasyiyah", "Al-Fajr", "Al-Balad",
+        "Asy-Syams", "Al-Lail", "Ad-Duha", "Asy-Syarh", "At-Tin", "Al-'Alaq", "Al-Qadr", "Al-Bayyinah", "Az-Zalzalah", "Al-'Adiyat",
+        "Al-Qari'ah", "At-Takasur", "Al-'Asr", "Al-Humazah", "Al-Fil", "Quraisy", "Al-Ma'un", "Al-Kausar", "Al-Kafirun", "An-Nasr",
+        "Al-Lahab", "Al-Ikhlas", "Al-Falaq", "An-Nas"
+    ];
+    const surahAyatCounts = [
+        7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128, 111, 110, 98, 135,
+        112, 78, 118, 64, 77, 227, 93, 88, 69, 60, 34, 30, 73, 54, 45, 83, 182, 88, 75, 85,
+        54, 53, 89, 59, 37, 35, 38, 29, 18, 45, 60, 49, 62, 55, 78, 96, 29, 22, 24, 13,
+        14, 11, 11, 18, 12, 12, 30, 52, 52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42,
+        29, 19, 36, 25, 22, 17, 19, 26, 30, 20, 15, 21, 11, 8, 8, 19, 5, 8, 8, 11,
+        11, 8, 3, 9, 5, 4, 7, 3, 6, 3, 5, 4, 5, 6
+    ];
+
+    // Fungsi Notifikasi Pintar (Pengganti Alert)
+    function showMessage(msg, type = 'error') {
+        const alertBox = document.getElementById('custom-alert');
+        alertBox.innerText = msg;
+        alertBox.style.background = type === 'error' ? 'rgba(220, 38, 38, 0.95)' : 'rgba(16, 185, 129, 0.95)';
+        alertBox.classList.add('show');
+        setTimeout(() => alertBox.classList.remove('show'), 3500);
+    }
+
+    function hideSplash() {
+        const splash = document.getElementById('splash-screen');
+        splash.style.opacity = '0';
+        setTimeout(() => splash.style.display = 'none', 800);
+    }
+
+    function formatTime(secs) {
+        if(isNaN(secs) || !isFinite(secs)) return "0:00";
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60);
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    // Mengisi Dropdown 114 Surah
+    const surahSelect = document.getElementById('surah-select');
+    for (let i = 0; i < 114; i++) {
+        const option = document.createElement('option');
+        option.value = i + 1;
+        option.text = `${i + 1}. ${surahNames[i]} - ${surahAyatCounts[i]} Ayat`;
+        surahSelect.appendChild(option);
+    }
+
+    surahSelect.addEventListener('change', () => {
+        const val = parseInt(surahSelect.value);
+        document.getElementById('ayat-end').value = surahAyatCounts[val - 1];
+        document.getElementById('ayat-start').value = 1;
+    });
+    surahSelect.dispatchEvent(new Event('change')); 
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(el => { el.classList.remove('text-emerald-500'); el.classList.add('text-gray-400'); });
         
-        btnNext.addEventListener('click', () => { if (currentPlayingIndex < currentAudioList.length - 1) { loadAudio(currentPlayingIndex + 1); playSafe(); } });
-        btnPrev.addEventListener('click', () => { if (currentPlayingIndex > 0) { loadAudio(currentPlayingIndex - 1); playSafe(); } });
-
-        // INTI KARAOKE: Saat audio 1 ayat selesai, langsung pindah ke ayat selanjutnya secara otomatis!
-        audioPlayer.addEventListener('ended', () => {
-            if (currentPlayingIndex < currentAudioList.length - 1) {
-                loadAudio(currentPlayingIndex + 1);
-                playSafe();
-                
-                // Update Progress Export UI jika sedang merekam
-                if (isExporting) {
-                    const progressText = document.getElementById('export-progress-text');
-                    if (progressText) {
-                        progressText.innerText = `Memproses Ayat ${currentPlayingIndex + 1} dari ${currentAudioList.length}... \nSistem sedang mengintegrasikan audio dan visual.`;
-                    }
-                }
-            } else {
-                // Semua ayat selesai dibaca
-                iconPause.classList.add('hidden');
-                iconPlay.classList.remove('hidden');
-                
-                // Jika sedang Export, saat ayat terakhir habis -> Stop dan Download otomatis!
-                if (isExporting) {
-                    finishExport();
-                }
-            }
-        });
-
-        audioPlayer.addEventListener('timeupdate', () => {
-            const current = audioPlayer.currentTime;
-            const duration = audioPlayer.duration;
-            if (!isNaN(duration) && duration > 0) {
-                progressBar.style.width = `${(current / duration) * 100}%`;
-                timeCurrent.textContent = formatTime(current);
-                timeTotal.textContent = formatTime(duration);
-            }
-        });
-
-        function formatTime(seconds) {
-            const min = Math.floor(seconds / 60);
-            const sec = Math.floor(seconds % 60);
-            return `${min}:${sec < 10 ? '0' : ''}${sec}`;
-        }
-
-        function updateLayout() {
-            const posY = posYInput.value;
-            overlayContent.style.justifyContent = posY < 33 ? 'flex-start' : posY > 66 ? 'flex-end' : 'center';
-            overlayContent.style.paddingTop = posY < 33 ? '10%' : '';
-            overlayContent.style.paddingBottom = posY > 66 ? '10%' : '';
-        }
-
-        posYInput.addEventListener('input', updateLayout);
-        sizeArabInput.addEventListener('input', renderQuranText);
-        colorArabInput.addEventListener('input', renderQuranText);
-        sizeIndoInput.addEventListener('input', renderQuranText);
-        toggleTerjemahan.addEventListener('change', renderQuranText);
-
-        bgGreenBtn.addEventListener('click', () => {
-            exportArea.style.backgroundColor = '#00FF00';
-            bgGreenBtn.classList.replace('border-transparent', 'border-emerald-500');
-            bgBlackBtn.classList.replace('border-gray-600', 'border-transparent');
-        });
+        const targetTab = document.getElementById('tab-' + tabId);
+        if(targetTab) targetTab.classList.add('active');
         
-        bgBlackBtn.addEventListener('click', () => {
-            exportArea.style.backgroundColor = '#0b0f19';
-            bgBlackBtn.classList.replace('border-transparent', 'border-gray-600');
-            bgGreenBtn.classList.replace('border-emerald-500', 'border-transparent');
-        });
-
-        // Helper memotong teks panjang untuk Kanvas Latar Belakang (Export)
-        function wrapText(context, text, x, y, maxWidth, lineHeight, isArabic) {
-            const words = text.split(' ');
-            let line = '';
-            let lines = [];
-            
-            for(let n = 0; n < words.length; n++) {
-                let testLine = line + words[n] + ' ';
-                let metrics = context.measureText(testLine);
-                if (metrics.width > maxWidth && n > 0) {
-                    lines.push(line.trim());
-                    line = words[n] + ' ';
-                } else {
-                    line = testLine;
-                }
-            }
-            lines.push(line.trim());
-            
-            // Susun lurus dari titik Y ke bawah (Bukan ditengah absolut lagi)
-            context.direction = isArabic ? 'rtl' : 'ltr';
-            for(let i = 0; i < lines.length; i++) {
-                context.fillText(lines[i], x, y + (i * lineHeight));
-            }
-            
-            return y + (lines.length * lineHeight); // Kembalikan titik Y terakhir agar teks selanjutnya bisa menyambung dibawahnya!
+        const activeBtn = document.querySelector(`button[onclick="switchTab('${tabId}')"]`);
+        if(activeBtn) {
+            activeBtn.classList.remove('text-gray-400'); 
+            activeBtn.classList.add('text-emerald-500');
         }
+    }
 
-        // Looping untuk menggambar frame video rahasia di latar belakang (Tidak mengubah UI!)
-        function startCanvasRecordingLoop() {
-            const ctx = recordCanvas.getContext('2d');
-            const w = recordCanvas.width;
-            const h = recordCanvas.height;
+    function padZero(num) {
+        return num.toString().padStart(3, '0');
+    }
 
-            function draw() {
-                if (!isExporting) return;
-                
-                // 1. Gambar Background Canvas (Hitam/Hijau)
-                ctx.fillStyle = bgGreenBtn.classList.contains('border-emerald-500') ? '#00FF00' : '#0b0f19';
-                ctx.fillRect(0, 0, w, h);
-                
-                // 2. Gambar Teks Ayat yang Sedang Aktif
-                if (currentAyatData.length > 0 && currentPlayingIndex >= 0) {
-                    const ayat = currentAyatData[currentPlayingIndex];
-                    const surahName = surahSelect.options[surahSelect.selectedIndex]?.text.split('(')[0].trim() || "Surah";
-                    const headerText = ayat.verseNumber === 0 ? `${surahName} • BASMALAH` : `${surahName} • AYAT ${ayat.verseNumber}`;
-                    const showTranslation = toggleTerjemahan.checked;
-                    
-                    const textColor = colorArabInput.value || '#FBBF24';
-                    const arabSize = parseInt(sizeArabInput.value) * 2; 
-                    const indoSize = parseInt(sizeIndoInput.value) * 2.5;
-                    const posY = parseInt(posYInput.value); 
-                    
-                    // Titik Y awal dimulai lebih ke atas agar ada ruang
-                    let currentY = (posY / 100) * h - (arabSize + indoSize); 
-                    if (currentY < 120) currentY = 120; // Margin aman paling atas
-                    
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'top'; // Patokan penulisan dari atas ke bawah
-                    
-                    // Header
-                    ctx.fillStyle = '#FBBF24';
-                    ctx.font = `bold ${indoSize * 0.8}px 'Inter', sans-serif`;
-                    ctx.fillText(headerText.toUpperCase(), w/2, currentY);
-                    currentY += indoSize * 2; // Beri spasi ke Arab
-                    
-                    // Arab Glow
-                    ctx.fillStyle = textColor;
-                    ctx.font = `bold ${arabSize}px 'Amiri Quran', serif`;
-                    ctx.shadowColor = textColor + '80';
-                    ctx.shadowBlur = 20;
-                    currentY = wrapText(ctx, ayat.text, w/2, currentY, w * 0.85, arabSize * 1.8, true);
-                    ctx.shadowBlur = 0; 
-                    
-                    currentY += 80; // Margin ekstra setelah Arab
-                    
-                    // Terjemahan
-                    if (showTranslation) {
-                        ctx.fillStyle = '#FBBF24';
-                        ctx.font = `600 ${indoSize}px 'Inter', sans-serif`;
-                        currentY = wrapText(ctx, ayat.translationId, w/2, currentY, w * 0.85, indoSize * 1.5, false);
-                        
-                        currentY += 40; // Spasi sebelum Inggris
-                        
-                        // Terjemahan Inggris
-                        ctx.fillStyle = '#cbd5e1'; // Warna Abu Terang
-                        ctx.font = `italic 400 ${indoSize * 0.85}px 'Inter', sans-serif`;
-                        wrapText(ctx, ayat.translationEn || '', w/2, currentY, w * 0.85, indoSize * 1.3, false);
-                    }
-                }
-                
-                exportAnimationFrame = requestAnimationFrame(draw);
-            }
-            draw();
-        }
-
-        btnExport.addEventListener('click', async () => {
-            if (currentAyatData.length === 0) return showMessage("Muat data ayat terlebih dahulu!", true);
+    document.getElementById('btn-load').addEventListener('click', async () => {
+        const surahNum = parseInt(surahSelect.value);
+        const start = parseInt(document.getElementById('ayat-start').value);
+        const end = parseInt(document.getElementById('ayat-end').value);
+        const withBismillah = document.getElementById('check-bismillah').checked;
+        const qariFolder = document.getElementById('qari-select').value;
+        
+        if(start > end) return showMessage("Ayat awal lebih besar dari akhir!");
+        
+        const loadingOverlay = document.getElementById('loading-overlay');
+        loadingOverlay.classList.remove('hidden');
+        loadingOverlay.classList.add('flex');
+        
+        currentAyatData = [];
+        audioCore.pause();
+        
+        try {
+            document.getElementById('loading-text').innerText = "Mengunduh Teks Al-Qur'an...";
             
-            // Pindahkan tab ke Studio agar user melihat prosesnya
-            tabBtns[1].click();
-
-            isExporting = true;
-            showMessage("🔴 Proses Rekaman Dimulai... Suara akan terdengar nyaring.");
+            // Mengambil Teks (Sangat ringan di memori)
+            const resIndo = await fetch(`https://api.quran.gading.dev/surah/${surahNum}`);
+            if (!resIndo.ok) throw new Error("API Teks Gagal");
+            const dataIndo = await resIndo.json();
             
-            // Kunci tombol UI
-            btnExport.disabled = true;
-            btnLoad.disabled = true;
-            btnExport.innerHTML = '<span class="animate-pulse">Merekam...</span>';
-            recordingIndicator.classList.remove('hidden');
-            
-            const progressText = document.getElementById('export-progress-text');
-            progressText.innerText = `Menyiapkan Ayat 1 dari ${currentAudioList.length}...`;
-
+            let engAyahs = [];
             try {
-                // 1. SETUP AUDIO CONTEXT (Menyalurkan suara ke Speaker & Recorder sekaligus)
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (audioCtx.state === 'suspended') {
-                    await audioCtx.resume();
-                }
-                
-                if (!sourceNode) {
-                    try {
-                        sourceNode = audioCtx.createMediaElementSource(audioPlayer);
-                        destNode = audioCtx.createMediaStreamDestination();
-                        sourceNode.connect(destNode); // Rute 1: Ke Video (WebM)
-                        sourceNode.connect(audioCtx.destination); // Rute 2: Ke Telinga Anda (Speaker)
-                    } catch (e) {
-                        console.warn("Audio Routing sudah terhubung.", e);
-                    }
-                }
+                const resEng = await fetch(`https://api.alquran.cloud/v1/surah/${surahNum}/en.asad`);
+                const d = await resEng.json();
+                engAyahs = d.data.ayahs || []; 
+            } catch(e) { console.warn("Eng fallback", e); }
 
-                // 2. MULAI DARI AYAT 1
-                loadAudio(0);
+            const surahName = surahNames[surahNum - 1];
+            const sNumStr = padZero(surahNum);
+
+            // Bismillah
+            if (withBismillah && surahNum !== 1 && surahNum !== 9 && start === 1) {
+                document.getElementById('loading-text').innerText = `Menyiapkan Basmalah...`;
+                await new Promise(r => setTimeout(r, 600)); // Simulasi jeda UI halus
                 
-                // PENTING: Tunggu audio siap diputar
-                await new Promise(resolve => {
-                    if (audioPlayer.readyState >= 3) resolve();
-                    else {
-                        audioPlayer.oncanplay = resolve;
-                        setTimeout(resolve, 2000); 
-                    }
+                currentAyatData.push({
+                    title: `${surahName} • BASMALAH`,
+                    arab: dataIndo.data.preBismillah.text.arab,
+                    indo: "Dengan menyebut nama Allah Yang Maha Pengasih lagi Maha Penyayang.",
+                    eng: "In the name of Allah, the Entirely Merciful, the Especially Merciful.",
+                    audioUrl: `https://everyayah.com/data/${qariFolder}/001001.mp3` // Link Langsung (Aman RAM)
                 });
+            }
 
-                // MAIN KAN!
-                await audioPlayer.play();
+            // Loop Ayat (Hanya menyimpan teks dan link, TIDAK mengunduh mp3 ke RAM)
+            for (let i = start; i <= end; i++) {
+                document.getElementById('loading-text').innerText = `Menyusun Ayat ${i} / ${end}...`;
+                await new Promise(r => setTimeout(r, 100)); // Hindari UI freeze
+                
+                const aNumStr = padZero(i);
+                currentAyatData.push({
+                    title: `${surahName} • AYAT ${i}`,
+                    arab: dataIndo.data.verses[i-1].text.arab,
+                    indo: dataIndo.data.verses[i-1].translation.id,
+                    eng: (engAyahs && engAyahs[i-1]) ? engAyahs[i-1].text : "",
+                    audioUrl: `https://everyayah.com/data/${qariFolder}/${sNumStr}${aNumStr}.mp3`
+                });
+            }
+
+            loadingOverlay.classList.add('hidden');
+            loadingOverlay.classList.remove('flex');
+            
+            if (currentAyatData.length > 0) {
+                showMessage("Berhasil memuat ayat!", "success");
+                switchTab('studio');
+                renderAyatToScreen(0);
+            }
+            
+        } catch (err) {
+            loadingOverlay.classList.add('hidden');
+            loadingOverlay.classList.remove('flex');
+            showMessage("Gagal memuat API! Periksa koneksi internet.");
+            console.error(err);
+        }
+    });
+
+    const maskKaraoke = document.getElementById('ui-arab-mask');
+    const audioProgress = document.getElementById('audio-progress');
+    const btnPlayPause = document.getElementById('btn-play-pause');
+    const iconPlay = document.getElementById('icon-play');
+    const iconPause = document.getElementById('icon-pause');
+
+    function renderAyatToScreen(index) {
+        if(!currentAyatData[index]) return;
+        currentAyatIndex = index;
+        const data = currentAyatData[index];
+        
+        document.getElementById('ui-header').innerText = data.title;
+        document.getElementById('ui-arab-base').innerText = data.arab;
+        document.getElementById('ui-arab-mask').innerText = data.arab;
+        document.getElementById('ui-indo').innerText = data.indo;
+        document.getElementById('ui-eng').innerText = data.eng;
+        
+        maskKaraoke.style.clipPath = 'inset(0 0 0 100%)';
+        audioProgress.style.width = '0%';
+        document.getElementById('audio-time').innerText = "0:00";
+        document.getElementById('audio-duration').innerText = "0:00";
+        
+        // Memuat audio tepat pada waktunya (Just-in-Time Streaming)
+        audioCore.src = data.audioUrl;
+        audioCore.load();
+        stopAudio();
+    }
+
+    // Mengambil durasi valid
+    audioCore.addEventListener('loadedmetadata', () => {
+        document.getElementById('audio-duration').innerText = formatTime(audioCore.duration);
+    });
+
+    function playAudio() {
+        if (currentAyatData.length === 0) return;
+        
+        const playPromise = audioCore.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
                 iconPlay.classList.add('hidden');
                 iconPause.classList.remove('hidden');
-
-                // 3. Mulai menggambar di kanvas tersembunyi
-                startCanvasRecordingLoop();
-                const canvasStream = recordCanvas.captureStream(30);
-                
-                let audioStream = destNode ? destNode.stream : null;
-                // Fallback khusus Safari
-                if (!audioStream && audioPlayer.captureStream) {
-                    audioStream = audioPlayer.captureStream();
+                cancelAnimationFrame(animationFrameId);
+                updateKaraokeVisual();
+            }).catch(err => {
+                if (err.name === 'AbortError') {
+                    // Abaikan pesan error jika pengguna menekan pause/ganti ayat secara cepat
+                    console.log("Pemutaran dihentikan dengan aman.");
+                } else {
+                    console.error("Gagal putar", err);
+                    showMessage("Tunggu sebentar, audio sedang dimuat...");
                 }
-
-                // Gabungkan Gambar + Suara
-                const tracks = [...canvasStream.getVideoTracks()];
-                if (audioStream && audioStream.getAudioTracks().length > 0) {
-                    tracks.push(...audioStream.getAudioTracks());
-                }
-                const combinedStream = new MediaStream(tracks);
-
-                // 4. Setup Perekam Video
-                let mimeType = 'video/webm; codecs=vp9,opus';
-                if (!MediaRecorder.isTypeSupported(mimeType)) {
-                    mimeType = 'video/webm; codecs=vp8,opus'; 
-                    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm'; 
-                    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/mp4'; 
-                }
-
-                mediaRecorder = new MediaRecorder(combinedStream, { mimeType: mimeType });
-                recordedChunks = [];
-
-                mediaRecorder.ondataavailable = e => {
-                    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-                };
-
-                // 5. EVENT: Saat Perekam Berhenti
-                mediaRecorder.onstop = () => {
-                    const videoBlob = new Blob(recordedChunks, { type: mimeType });
-                    const videoUrl = URL.createObjectURL(videoBlob);
-                    
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = videoUrl;
-                    
-                    const surahName = surahSelect.options[surahSelect.selectedIndex]?.text.split('(')[0].trim() || "Surah";
-                    a.download = `QuranOverlay_${surahName}_Auto.webm`; 
-                    
-                    document.body.appendChild(a);
-                    a.click(); 
-                    
-                    setTimeout(() => {
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(videoUrl);
-                    }, 100);
-
-                    resetExportUI();
-                    showMessage("✅ Rekaman Selesai! Cek folder Download Anda.");
-                };
-
-                // MULAI MEREKAM
-                mediaRecorder.start();
-
-            } catch (err) {
-                console.error("Gagal export", err);
-                showMessage("Sistem Audio menolak diakses (Tolong klik tab Studio 1x sebelum merekam)", true);
-                resetExportUI();
-                audioPlayer.pause();
-                iconPause.classList.add('hidden');
-                iconPlay.classList.remove('hidden');
-            }
-        });
-
-        // Helper untuk mereset tampilan setelah export selesai/gagal
-        function resetExportUI() {
-            isExporting = false;
-            cancelAnimationFrame(exportAnimationFrame); 
-            btnExport.disabled = false;
-            btnLoad.disabled = false;
-            btnExport.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg> Export`;
-            recordingIndicator.classList.add('hidden'); 
+            });
         }
+    }
 
-        function finishExport() {
-            if (mediaRecorder && mediaRecorder.state !== "inactive") {
-                // Beri jeda 1 detik di akhir agar suara ayat terakhir (pantulan tajwid) tidak terpotong tiba-tiba
-                setTimeout(() => {
-                    if (mediaRecorder.state !== "inactive") {
-                        mediaRecorder.stop();
-                    }
-                }, 1000); 
+    function stopAudio() {
+        audioCore.pause();
+        iconPlay.classList.remove('hidden');
+        iconPause.classList.add('hidden');
+        cancelAnimationFrame(animationFrameId);
+    }
+
+    audioCore.onended = () => {
+        maskKaraoke.style.clipPath = 'inset(0 0 0 0)';
+        if (!isExporting) {
+            if (currentAyatIndex < currentAyatData.length - 1) {
+                setTimeout(() => { 
+                    renderAyatToScreen(currentAyatIndex + 1);
+                    playAudio();
+                }, 500); // Jeda perpindahan ayat
             } else {
-                resetExportUI();
+                stopAudio();
+                showMessage("Pembacaan selesai.", "success");
             }
         }
-    </script>
+    };
+
+    function updateKaraokeVisual() {
+        if (!audioCore.paused && !audioCore.ended && audioCore.duration > 0) {
+            const progress = audioCore.currentTime / audioCore.duration;
+            // Sapuan RTL Kanan ke Kiri
+            const cutFromLeft = (1 - progress) * 100;
+            maskKaraoke.style.clipPath = `inset(0 0 0 ${cutFromLeft}%)`;
+            
+            audioProgress.style.width = (progress * 100) + '%';
+            document.getElementById('audio-time').innerText = formatTime(audioCore.currentTime);
+            
+            animationFrameId = requestAnimationFrame(updateKaraokeVisual);
+        }
+    }
+
+    btnPlayPause.addEventListener('click', () => {
+        if (currentAyatData.length === 0) return showMessage("Muat data ayat terlebih dahulu!");
+        if (audioCore.paused) { playAudio(); } else { stopAudio(); }
+    });
+
+    document.getElementById('size-arab').addEventListener('input', (e) => {
+        const v = e.target.value + 'rem';
+        document.getElementById('val-size-arab').innerText = v;
+        document.getElementById('ui-arab-base').style.fontSize = v;
+        document.getElementById('ui-arab-mask').style.fontSize = v;
+    });
+    
+    document.getElementById('size-terjemahan').addEventListener('input', (e) => {
+        const v = e.target.value + 'rem';
+        document.getElementById('val-size-terj').innerText = v;
+        document.getElementById('ui-indo').style.fontSize = v;
+        document.getElementById('ui-eng').style.fontSize = (e.target.value * 0.85) + 'rem';
+    });
+    
+    document.getElementById('color-picker').addEventListener('input', (e) => {
+        document.getElementById('tab-studio').style.backgroundColor = e.target.value;
+    });
+
+    // Helper Text Wrap untuk Canvas
+    function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+        const words = text.split(' ');
+        let line = '';
+        let currentY = y;
+        for (let n = 0; n < words.length; n++) {
+            let testLine = line + words[n] + ' ';
+            let metrics = ctx.measureText(testLine);
+            if (metrics.width > maxWidth && n > 0) {
+                ctx.fillText(line, x, currentY);
+                line = words[n] + ' ';
+                currentY += lineHeight;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line, x, currentY);
+        return currentY;
+    }
+
+    document.getElementById('btn-export').addEventListener('click', async () => {
+        if (currentAyatData.length === 0) return showMessage("Muat ayat terlebih dahulu!");
+        
+        stopAudio();
+        isExporting = true;
+        
+        const modal = document.getElementById('export-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        const progressStatus = document.getElementById('export-status');
+        const progressBar = document.getElementById('export-progress-bar');
+        
+        const canvas = document.getElementById('hidden-render-canvas');
+        const ctx = canvas.getContext('2d');
+        const bgColor = document.getElementById('color-picker').value;
+        
+        try {
+            progressStatus.innerText = "Membangun Mesin Audio Studio (Jurus Pamungkas)...";
+            
+            // --- JURUS PAMUNGKAS: BINARY AUDIO DECODING (ANTI-BISU MUTLAK) ---
+            // Kita mem-bypass elemen HTML Audio dan langsung membedah data biner di RAM!
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            
+            // Terminal penyedot suara
+            const audioDest = audioCtx.createMediaStreamDestination();
+            
+            // HACK MUTLAK STUDIO: Suntikkan gelombang bisu (Silent Oscillator)
+            // Ini memaksa Google Chrome untuk menjaga track audio tetap "hidup" dari detik ke-0
+            const silence = audioCtx.createOscillator();
+            const silenceGain = audioCtx.createGain();
+            silenceGain.gain.value = 0; // 100% Bisu
+            silence.connect(silenceGain);
+            silenceGain.connect(audioDest);
+            silence.start();
+            
+            // Setup Stream Rekaman Video HD
+            const canvasStream = canvas.captureStream(30);
+            
+            // Menyatukan Tali Video + Tali Audio Mutlak
+            const combinedStream = new MediaStream([
+                ...canvasStream.getVideoTracks(),
+                ...audioDest.stream.getAudioTracks()
+            ]);
+
+            // KUNCI MUTLAK: HANYA BOLEH WEBM. 
+            // Chrome cacat dalam menggabungkan audio PCM ke dalam MP4, yang menyebabkan video bisu.
+            // Format WebM didukung penuh dan sangat ringan jika dimasukkan ke CapCut!
+            let mimeType = 'video/webm;codecs=vp8,opus';
+            let fileExt = '.webm';
+
+            const recorderOptions = { mimeType: mimeType, videoBitsPerSecond: 3000000 };
+            const recorder = new MediaRecorder(combinedStream, recorderOptions);
+            let chunks = [];
+            
+            recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+            recorder.start(500); 
+
+            let isDrawing = true;
+            let exportCurrentTime = 0;
+            let exportDuration = 0;
+
+            function drawCanvasFrame() {
+                if(!isDrawing) return;
+                
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                const ayat = currentAyatData[currentAyatIndex];
+                if(ayat) {
+                    ctx.fillStyle = "#FFD700";
+                    ctx.font = "bold 24px Inter";
+                    ctx.textAlign = "center";
+                    ctx.fillText(ayat.title, canvas.width/2, 180);
+                    
+                    ctx.font = "52px Uthmani"; 
+                    ctx.textAlign = "center";
+                    ctx.direction = "rtl";
+                    const maxTextWidth = canvas.width - 80; 
+                    
+                    ctx.fillStyle = "#FFD700";
+                    ctx.shadowBlur = 0; 
+                    const bottomY = wrapCanvasText(ctx, ayat.arab, canvas.width/2, 350, maxTextWidth, 90);
+                    
+                    if(exportDuration > 0) {
+                        const prog = Math.min(exportCurrentTime / exportDuration, 1);
+                        ctx.save();
+                        const clipX = canvas.width - (canvas.width * prog);
+                        ctx.beginPath();
+                        ctx.rect(clipX, 0, canvas.width, canvas.height);
+                        ctx.clip();
+                        
+                        ctx.fillStyle = "#10b981";
+                        wrapCanvasText(ctx, ayat.arab, canvas.width/2, 350, maxTextWidth, 90);
+                        ctx.restore();
+                    }
+                    
+                    ctx.direction = "ltr";
+                    let terjY = bottomY + 80;
+                    ctx.fillStyle = "#FFD700";
+                    ctx.font = "600 22px Inter";
+                    terjY = wrapCanvasText(ctx, ayat.indo, canvas.width/2, terjY, maxTextWidth, 35);
+                    
+                    ctx.fillStyle = "#b89f45";
+                    ctx.font = "italic 18px Inter";
+                    wrapCanvasText(ctx, ayat.eng, canvas.width/2, terjY + 40, maxTextWidth, 30);
+                }
+                if(isDrawing) requestAnimationFrame(drawCanvasFrame);
+            }
+            drawCanvasFrame(); 
+            
+            // LOOP AYAT - MENGGUNAKAN AUDIO BINARY DECODING (Pasti Bersuara)
+            for(let i=0; i<currentAyatData.length; i++) {
+                currentAyatIndex = i;
+                progressStatus.innerText = `Membedah Gelombang Suara Ayat ${i+1}...`;
+                
+                // 1. Sedot file MP3 mentah (ArrayBuffer)
+                const res = await fetch(currentAyatData[i].audioUrl);
+                const arrayBuffer = await res.arrayBuffer();
+                
+                // 2. Decode menjadi Gelombang Suara Murni
+                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                exportDuration = audioBuffer.duration;
+                
+                // 3. Suntikkan gelombang ke mesin rekaman
+                const source = audioCtx.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioDest);            // Salurkan ke Video
+                source.connect(audioCtx.destination); // Salurkan ke Speaker HP
+                
+                progressStatus.innerText = `Merekam Ayat ${i+1} / ${currentAyatData.length}`;
+                progressBar.style.width = (((i+1) / currentAyatData.length) * 100) + '%';
+                
+                exportCurrentTime = 0;
+                source.start(0); // PUTAR!
+                
+                const startTime = audioCtx.currentTime;
+                
+                // Sabar menunggu ayat selesai...
+                await new Promise((resolve) => {
+                    const progressInterval = setInterval(() => {
+                        // Penghitung waktu mutlak dari AudioContext
+                        exportCurrentTime = audioCtx.currentTime - startTime;
+                        
+                        if (exportCurrentTime >= exportDuration) {
+                            clearInterval(progressInterval);
+                            resolve(); 
+                        }
+                    }, 50);
+                });
+            }
+            
+            isDrawing = false;
+            await new Promise(r => setTimeout(r, 1000)); // Gaung / Jeda penutup
+            recorder.stop();
+            
+            if (audioCtx.state !== 'closed') audioCtx.close();
+            
+            recorder.onstop = () => {
+                progressStatus.innerText = "Mematangkan File Video MP4...";
+                
+                const blob = new Blob(chunks, { type: mimeType }); 
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `Quran_Overlay_Video${fileExt}`;
+                document.body.appendChild(a);
+                a.click();
+                
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    isExporting = false;
+                    currentAyatIndex = 0; renderAyatToScreen(0); 
+                    showMessage(`Video ${fileExt.toUpperCase()} berhasil diunduh!`, "success");
+                }, 1500);
+            };
+
+        } catch (err) {
+            console.error("Export Error:", err);
+            isDrawing = false;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            isExporting = false;
+            showMessage("Perekaman batal. Muat ulang halaman jika error.", "error");
+        }
+    });
+</script>
 </body>
 </html>
