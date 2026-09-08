@@ -361,12 +361,14 @@
         try {
             document.getElementById('loading-text').innerText = "Membuka Koneksi Server...";
             
-            // Ambil Data Audio API
+            // --- SOLUSI MUTLAK: PINDAH 100% KE SERVER ALQURAN.CLOUD (ENTERPRISE) ---
             const resAudio = await fetch(`https://api.alquran.cloud/v1/surah/${surahNum}/${qariFolder}`);
             const dataAudio = await resAudio.json();
             
-            // Ambil Data Teks Indo
-            const resIndo = await fetch(`https://api.quran.gading.dev/surah/${surahNum}`);
+            const resArab = await fetch(`https://api.alquran.cloud/v1/surah/${surahNum}/quran-uthmani`);
+            const dataArab = await resArab.json();
+
+            const resIndo = await fetch(`https://api.alquran.cloud/v1/surah/${surahNum}/id.indonesian`);
             const dataIndo = await resIndo.json();
             
             // Ambil Data Teks English
@@ -378,6 +380,7 @@
             } catch(e) {}
 
             const surahName = surahListMap[surahNum].name;
+            const bismillahUthmani = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
 
             if (withBismillah && surahNum !== 1 && surahNum !== 9 && start === 1) {
                 document.getElementById('loading-text').innerText = `Memuat Basmalah...`;
@@ -386,7 +389,7 @@
                 
                 currentAyatData.push({
                     title: `${surahName} • BASMALAH`,
-                    arab: dataIndo.data.preBismillah.text.arab,
+                    arab: bismillahUthmani,
                     indo: "Dengan menyebut nama Allah Yang Maha Pengasih lagi Maha Penyayang.",
                     eng: "In the name of Allah, the Entirely Merciful, the Especially Merciful.",
                     audioUrl: basmalahData.data.audio
@@ -397,10 +400,17 @@
                 document.getElementById('loading-text').innerText = `Merekap Ayat ${i} / ${end}...`;
                 await new Promise(r => setTimeout(r, 50)); 
                 
+                let textArab = dataArab.data.ayahs[i-1].text;
+                
+                // Bersihkan teks basmalah yang menempel bawaan server di awal ayat 1 (karena kita sudah pisah halamannya)
+                if (i === 1 && surahNum !== 1 && surahNum !== 9) {
+                    textArab = textArab.replace(bismillahUthmani, "").replace("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ", "").replace(/^بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\s*/, "").trim();
+                }
+
                 currentAyatData.push({
                     title: `${surahName} • AYAT ${i}`,
-                    arab: dataIndo.data.verses[i-1].text.arab,
-                    indo: dataIndo.data.verses[i-1].translation.id,
+                    arab: textArab,
+                    indo: dataIndo.data.ayahs[i-1].text,
                     eng: (engAyahs && engAyahs[i-1]) ? engAyahs[i-1].text : "",
                     audioUrl: dataAudio.data.ayahs[i-1].audio
                 });
