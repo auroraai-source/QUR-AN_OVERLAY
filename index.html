@@ -568,56 +568,107 @@
         const ctx = canvas.getContext('2d');
         const bgColor = document.getElementById('color-picker').value;
         
+        // Buat AudioContext Global untuk Export
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+        
         try {
-            progressStatus.innerText = "Membuka Mesin Render...";
-            
-            // 1. Pancing Canvas agar tidak kosong saat di-capture (Khusus HP)
-            ctx.fillStyle = bgColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // 2. Buka Paksa Kunci Audio Mobile
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const audioCtx = new AudioContext();
+            // Buka Paksa Kunci Audio Mobile
             if (audioCtx.state === 'suspended') {
                 await audioCtx.resume(); 
             }
             
             const audioDest = audioCtx.createMediaStreamDestination();
             
-            // Suntikan Suara Bisu (Menjaga track audio tetap hidup)
+            // Suntikan Suara Bisu (Menjaga track audio tetap hidup dari detik ke-0)
             const silence = audioCtx.createOscillator();
             const silenceGain = audioCtx.createGain();
             silenceGain.gain.value = 0; 
             silence.connect(silenceGain);
             silenceGain.connect(audioDest);
             silence.start();
+
+            // =================================================================
+            // TAHAP 1: PRE-DOWNLOAD SEMUA AUDIO (Ide Brilian User)
+            // =================================================================
+            progressStatus.innerText = "Tahap 1: Mengunduh Semua Audio ke Memori...";
+            progressBar.style.width = '0%';
+
+            for(let i=0; i<currentAyatData.length; i++) {
+                progressStatus.innerText = `Mengunduh Audio Ayat ${i+1} / ${currentAyatData.length}...`;
+                // Progress bar diisi 0% sampai 50% untuk tahap download
+                progressBar.style.width = (((i+1) / currentAyatData.length) * 50) + '%'; 
+
+                let arrayBuffer;
+                const url = currentAyatData[i].audioUrl;
+                const proxies = [
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                    url
+                ];
+
+                let fetchSuccess = false;
+                for (let proxy of proxies) {
+                    try {
+                        const res = await fetch(proxy);
+                        if (res.ok) {
+                            arrayBuffer = await res.arrayBuffer();
+                            fetchSuccess = true;
+                            break; 
+                        }
+                    } catch (e) {
+                        console.warn("Proxy gagal, mencoba jalur lain...");
+                    }
+                }
+
+                if (!fetchSuccess) {
+                    throw new Error(`Gagal menarik audio Ayat ${i+1}. Cek internet Anda.`);
+                }
+                
+                // Decode dan Simpan Audio ke RAM (TIDAK langsung diputar)
+                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                currentAyatData[i].preloadedAudioBuffer = audioBuffer; 
+            }
+
+
+            // =================================================================
+            // TAHAP 2: PROSES REKAMAN (Mulus Tanpa Jeda Internet)
+            // =================================================================
+            progressStatus.innerText = "Tahap 2: Merekam Video Tanpa Jeda...";
             
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
             const canvasStream = canvas.captureStream(30);
             const combinedStream = new MediaStream([
                 ...canvasStream.getVideoTracks(),
                 ...audioDest.stream.getAudioTracks()
             ]);
 
-            let mimeType = 'video/webm';
+            // Kunci format ke WebM VP8 agar Audio & Video terikat sempurna
+            let mimeType = 'video/webm;codecs=vp8,opus';
             let fileExt = '.webm';
-            if(MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
-                mimeType = 'video/webm;codecs=vp8,opus';
+            
+            if(!MediaRecorder.isTypeSupported(mimeType)) {
+                mimeType = 'video/webm'; 
             }
 
-            // Turunkan sedikit Bitrate untuk HP agar RAM aman (2.5 Mbps)
-            const recorderOptions = { mimeType: mimeType, videoBitsPerSecond: 2500000 };
+            // Bitrate 3.5 Mbps untuk HD yang jernih di CapCut
+            const recorderOptions = { mimeType: mimeType, videoBitsPerSecond: 3500000 };
             const recorder = new MediaRecorder(combinedStream, recorderOptions);
             let chunks = [];
             
             recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-            recorder.start(500); 
+            
+            // Nyalakan Kamera Perekam!
+            recorder.start(200); 
 
             let isDrawing = true;
             let exportCurrentTime = 0;
             let exportDuration = 0;
             let totalVideoDuration = 0; 
 
-            // Fungsi Loop Gambar Latar Belakang
+            // Loop Animasi Kanvas Berjalan Serentak
             function drawCanvasFrame() {
                 if(!isDrawing) return;
                 
@@ -636,11 +687,12 @@
                     ctx.direction = "rtl";
                     const maxTextWidth = canvas.width - 80; 
                     
-                    // EFEK TENGGELAM SAAT EXPORT VIDEO BERJALAN
+                    // EFEK TENGGELAM OTOMATIS: 
+                    // Karena audio sudah di RAM, tidak ada jeda, teks kuning langsung redup
                     if (exportCurrentTime > 0.1) {
                         ctx.fillStyle = "rgba(255, 215, 0, 0.1)"; // Ditenggelamkan (Sisa 10%)
                     } else {
-                        ctx.fillStyle = "#FFD700"; // Kuning Terang (Saat Standby)
+                        ctx.fillStyle = "#FFD700"; // Kuning Terang (Hanya muncul sekejap)
                     }
                     ctx.shadowBlur = 0; 
                     const bottomY = wrapCanvasText(ctx, ayat.arab, canvas.width/2, 350, maxTextWidth, 90);
@@ -653,7 +705,7 @@
                         ctx.rect(clipX, 0, canvas.width, canvas.height);
                         ctx.clip();
                         
-                        ctx.fillStyle = "#10b981";
+                        ctx.fillStyle = "#10b981"; // Efek Cahaya Hijau Karaoke
                         wrapCanvasText(ctx, ayat.arab, canvas.width/2, 350, maxTextWidth, 90);
                         ctx.restore();
                     }
@@ -672,43 +724,18 @@
             }
             drawCanvasFrame(); 
             
-            // Proses Loop Ayat
+            // Loop Mainkan Audio secara Maraton (Langsung Tabrak Tanpa Internet!)
             for(let i=0; i<currentAyatData.length; i++) {
                 currentAyatIndex = i;
-                progressStatus.innerText = `Menyiapkan Audio Ayat ${i+1}...`;
+                progressStatus.innerText = `Merekam Ayat ${i+1} / ${currentAyatData.length}`;
                 
-                // Sistem Pengunduh 3 Lapis (Anti-Gagal)
-                let arrayBuffer;
-                const url = currentAyatData[i].audioUrl;
-                const proxies = [
-                    `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-                    url
-                ];
-
-                let fetchSuccess = false;
-                for (let proxy of proxies) {
-                    try {
-                        const res = await fetch(proxy);
-                        if (res.ok) {
-                            arrayBuffer = await res.arrayBuffer();
-                            fetchSuccess = true;
-                            break; // Berhasil, keluar dari loop
-                        }
-                    } catch (e) {
-                        console.warn("Proxy gagal, mencoba jalur lain...");
-                    }
-                }
-
-                if (!fetchSuccess) {
-                    throw new Error("Gagal menarik audio. Cek internet Anda.");
-                }
+                // Progress bar diisi dari 50% sampai 100% untuk tahap rekaman
+                progressBar.style.width = (50 + (((i+1) / currentAyatData.length) * 50)) + '%';
                 
-                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                // Ambil Audio dari RAM (Super Cepat!)
+                const audioBuffer = currentAyatData[i].preloadedAudioBuffer;
                 
-                // --- PENGHILANG JEDA LAMA (SILENCE TRIMMER) ---
-                // MP3 bawaan server memiliki keheningan ~1.2 detik di akhir.
-                // Kita potong durasinya agar ayat selanjutnya langsung menyambung (Overlap).
+                // Potong Jeda Kosong (Silence Trimmer)
                 const originalDuration = audioBuffer.duration;
                 const trimSilence = 1.2; 
                 exportDuration = originalDuration > 1.8 ? originalDuration - trimSilence : originalDuration;
@@ -717,36 +744,40 @@
                 const source = audioCtx.createBufferSource();
                 source.buffer = audioBuffer;
                 source.connect(audioDest);            
-                source.connect(audioCtx.destination); 
-                
-                progressStatus.innerText = `Merekam Ayat ${i+1} / ${currentAyatData.length}`;
-                progressBar.style.width = (((i+1) / currentAyatData.length) * 100) + '%';
+                source.connect(audioCtx.destination); // Bisa didengar saat export berjalan
                 
                 exportCurrentTime = 0;
-                source.start(0); 
+                source.start(0); // Mulai putar secara instan
                 
                 const startTime = audioCtx.currentTime;
                 
+                // Polling Super Cepat (Menunggu Audio Selesai)
                 await new Promise((resolve) => {
                     const progressInterval = setInterval(() => {
                         exportCurrentTime = audioCtx.currentTime - startTime;
                         if (exportCurrentTime >= exportDuration) {
                             clearInterval(progressInterval);
-                            resolve(); 
+                            resolve(); // Selesai! Langsung loop ke ayat berikutnya dalam milidetik!
                         }
-                    }, 50);
+                    }, 20); // Dicek setiap 20 milidetik
                 });
             }
             
+            // TAHAP 3: FINISHING (Berikan sisa ruang gema 1 detik)
             isDrawing = false;
             await new Promise(r => setTimeout(r, 1000)); 
             totalVideoDuration += 1; 
             recorder.stop();
             
             if (audioCtx.state !== 'closed') audioCtx.close();
+
+            // Bersihkan Memori RAM (Garbage Collector)
+            for(let i=0; i<currentAyatData.length; i++) {
+                delete currentAyatData[i].preloadedAudioBuffer;
+            }
             
             recorder.onstop = () => {
-                progressStatus.innerText = "Mematangkan File Video CapCut...";
+                progressStatus.innerText = "Mematangkan Metadata untuk CapCut...";
                 const rawBlob = new Blob(chunks, { type: mimeType }); 
                 
                 const doDownload = (finalBlob) => {
@@ -754,7 +785,7 @@
                     const a = document.createElement('a');
                     a.style.display = 'none';
                     a.href = finalUrl;
-                    a.download = `Quran_Overlay_CapCut${fileExt}`;
+                    a.download = `Quran_Overlay_Video${fileExt}`;
                     document.body.appendChild(a);
                     a.click();
                     
@@ -769,8 +800,7 @@
                     }, 1500);
                 };
 
-                // Injeksi Metadata Durasi dengan Fallback Aman
-                progressStatus.innerText = "Menyuntikkan Metadata...";
+                // Injeksi Metadata Durasi Paksa agar tidak error di CapCut
                 const script = document.createElement('script');
                 script.src = "https://cdn.jsdelivr.net/npm/fix-webm-duration@1.0.6/fix-webm-duration.js";
                 script.onload = () => {
@@ -779,9 +809,7 @@
                     });
                 };
                 script.onerror = () => {
-                    // Jika script metadata diblokir, tetap unduh videonya secara paksa
-                    console.warn("Script metadata gagal dimuat, mengunduh file raw.");
-                    doDownload(rawBlob);
+                    doDownload(rawBlob); // Fallback
                 };
                 document.body.appendChild(script);
             };
@@ -792,6 +820,7 @@
             modal.classList.add('hidden');
             modal.classList.remove('flex');
             isExporting = false;
+            if (audioCtx.state !== 'closed') audioCtx.close();
             showMessage(`Batal: ${err.message}`, "error");
         }
     });
