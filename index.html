@@ -62,8 +62,8 @@
         #tab-studio { background-color: #050b14; color: white; padding: 0; position: relative; transition: background-color 0.3s; }
         
         .canvas-container {
-            display: flex; flex-direction: column; justify-content: flex-start; align-items: center;
-            height: 100%; padding: 2rem; padding-top: 4rem; padding-bottom: 4rem; overflow-y: auto; width: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            height: 100%; padding: 2rem; padding-bottom: 5.5rem; overflow-y: auto; width: 100%;
         }
 
         .font-arabic { font-family: 'Uthmani', serif; line-height: 1.8; }
@@ -154,15 +154,15 @@
 
             <div id="tab-studio" class="tab-content relative">
                 <div class="canvas-container">
-                    <div id="ui-header" class="text-[#FFD700] text-xs font-bold tracking-widest uppercase mb-12 text-center">NAMA SURAH</div>
+                    <div id="ui-header" class="text-[#FFD700] text-xs font-bold tracking-widest uppercase mb-10 text-center">NAMA SURAH</div>
 
-                    <div class="karaoke-wrapper px-2 mb-8">
+                    <div class="karaoke-wrapper px-2 mb-6">
                         <div id="ui-arab-base" class="ayat-base font-arabic text-[2.2rem] leading-loose flex flex-wrap justify-center gap-x-2" dir="rtl"></div>
                     </div>
 
-                    <div id="ui-translation" class="w-[90%] border-t border-gray-700 pt-4 mt-2">
-                        <p id="ui-indo" class="text-center text-[#FFD700] font-semibold text-sm mb-2"></p>
-                        <p id="ui-eng" class="text-center text-[#b89f45] italic text-xs font-light"></p>
+                    <div id="ui-translation" class="w-[90%] border-t border-gray-700/60 pt-5 mt-6">
+                        <p id="ui-indo" class="text-center text-[#FFD700] font-semibold text-sm mb-3"></p>
+                        <p id="ui-eng" class="text-center text-slate-300 italic text-xs font-light"></p>
                     </div>
                 </div>
                 
@@ -395,15 +395,29 @@
         try {
             document.getElementById('loading-text').innerText = "Menarik Data Teks Al-Qur'an...";
             
-            // HANYA AMBIL TEKS, AUDIO LANGSUNG GENERATE URL EVERYAYAH
-            const dataArab = await fetchJsonSafely(`https://api.alquran.cloud/v1/surah/${surahNum}/quran-uthmani`);
-            const dataIndo = await fetchJsonSafely(`https://api.alquran.cloud/v1/surah/${surahNum}/id.indonesian`);
-            
+            // SEDOT 3 EDISI SEKALIGUS (ARAB, INDO, INGGRIS) DALAM 1 KALI TEMBAK (ANTI RATE-LIMIT)
+            let dataArabAyahs = [];
+            let dataIndoAyahs = [];
             let engAyahs = [];
+
             try {
-                const dEng = await fetchJsonSafely(`https://api.alquran.cloud/v1/surah/${surahNum}/en.asad`);
-                engAyahs = dEng.data.ayahs || []; 
-            } catch(e) {} // Abaikan jika server Inggris mati
+                const combinedData = await fetchJsonSafely(`https://api.alquran.cloud/v1/surah/${surahNum}/editions/quran-uthmani,id.indonesian,en.sahih`);
+                if (combinedData && combinedData.data && combinedData.data.length >= 3) {
+                    dataArabAyahs = combinedData.data[0].ayahs;
+                    dataIndoAyahs = combinedData.data[1].ayahs;
+                    engAyahs = combinedData.data[2].ayahs;
+                }
+            } catch(eCombined) {
+                // Cadangan jika edisi gabungan diblokir
+                const dArab = await fetchJsonSafely(`https://api.alquran.cloud/v1/surah/${surahNum}/quran-uthmani`);
+                const dIndo = await fetchJsonSafely(`https://api.alquran.cloud/v1/surah/${surahNum}/id.indonesian`);
+                dataArabAyahs = dArab.data.ayahs;
+                dataIndoAyahs = dIndo.data.ayahs;
+                try {
+                    const dEng = await fetchJsonSafely(`https://api.alquran.cloud/v1/surah/${surahNum}/en.sahih`);
+                    engAyahs = dEng.data.ayahs || [];
+                } catch(e) {}
+            }
 
             const surahName = surahListMap[surahNum].name;
             const bismillahUthmani = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
@@ -428,12 +442,11 @@
             for (let i = start; i <= end; i++) {
                 document.getElementById('loading-text').innerText = `Menyedot Audio Ayat ${i} / ${end}...`;
                 
-                let textArab = dataArab.data.ayahs[i-1].text;
+                let textArab = (dataArabAyahs[i-1] && dataArabAyahs[i-1].text) ? dataArabAyahs[i-1].text : "";
                 if (i === 1 && surahNum !== 1 && surahNum !== 9) {
                     textArab = textArab.replace(bismillahUthmani, "").replace("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ", "").replace(/^بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\s*/, "").trim();
                 }
 
-                // MERAKIT LINK AUDIO EVERYAYAH SECARA OTOMATIS
                 const surahFormat = surahNum.toString().padStart(3, '0');
                 const ayahFormat = i.toString().padStart(3, '0');
                 const eAyahUrl = `https://everyayah.com/data/${eQari}/${surahFormat}${ayahFormat}.mp3`;
@@ -444,8 +457,8 @@
                 currentAyatData.push({
                     title: `${surahName} • AYAT ${i}`,
                     arab: textArab,
-                    indo: dataIndo.data.ayahs[i-1].text,
-                    eng: (engAyahs && engAyahs[i-1]) ? engAyahs[i-1].text : "",
+                    indo: (dataIndoAyahs[i-1] && dataIndoAyahs[i-1].text) ? dataIndoAyahs[i-1].text : "",
+                    eng: (engAyahs && engAyahs[i-1] && engAyahs[i-1].text) ? engAyahs[i-1].text : "",
                     audioUrl: aBlobUrl,
                     rawArrayBuffer: aBuffer
                 });
@@ -756,26 +769,32 @@
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 const ayat = currentAyatData[currentAyatIndex];
                 if(ayat) {
+                    // Judul Surah diturunkan ke posisi tengah yang seimbang
                     ctx.fillStyle = "#FFD700";
                     ctx.font = "bold 24px Inter"; ctx.textAlign = "center";
-                    ctx.fillText(ayat.title, canvas.width/2, 180);
+                    ctx.fillText(ayat.title, canvas.width/2, 380);
                     
+                    // Naskah Arab diletakkan di titik tengah vertikal kanvas (y=490)
                     ctx.font = "52px Uthmani"; ctx.textAlign = "center"; ctx.direction = "rtl";
                     const maxTextWidth = canvas.width - 80; 
                     
                     let progress = 0;
                     if(exportDuration > 0) progress = Math.min(exportCurrentTime / exportDuration, 1);
                     
-                    // Cinematic Dimming dan Efek Sweep ada di fungsi drawKaraokeCanvas
-                    const bottomY = drawKaraokeCanvas(ctx, ayat.arab, canvas.width/2, 350, maxTextWidth, 90, progress, exportCurrentTime);
+                    const bottomY = drawKaraokeCanvas(ctx, ayat.arab, canvas.width/2, 490, maxTextWidth, 95, progress, exportCurrentTime);
                     
+                    // Terjemahan Bahasa Indonesia diturunkan agar tidak mepet
                     ctx.direction = "ltr";
-                    let terjY = bottomY + 80;
+                    let terjY = bottomY + 95;
                     ctx.fillStyle = "#FFD700"; ctx.font = "600 22px Inter"; ctx.shadowBlur = 0;
-                    terjY = wrapCanvasText(ctx, ayat.indo, canvas.width/2, terjY, maxTextWidth, 35);
+                    terjY = wrapCanvasText(ctx, ayat.indo, canvas.width/2, terjY, maxTextWidth, 36);
                     
-                    ctx.fillStyle = "#b89f45"; ctx.font = "italic 18px Inter";
-                    wrapCanvasText(ctx, ayat.eng, canvas.width/2, terjY + 40, maxTextWidth, 30);
+                    // Terjemahan Bahasa Inggris di bawahnya dengan warna terang elegan
+                    if (ayat.eng && ayat.eng.trim() !== '') {
+                        ctx.fillStyle = "#cbd5e1";
+                        ctx.font = "italic 19px Inter";
+                        wrapCanvasText(ctx, ayat.eng, canvas.width/2, terjY + 45, maxTextWidth, 30);
+                    }
                 }
                 if(isDrawing) requestAnimationFrame(drawCanvasFrame);
             }
