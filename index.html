@@ -102,7 +102,15 @@
     <div class="phone-frame">
         <div class="app-header p-4 flex justify-between items-center bg-white shadow-sm z-10 shrink-0">
             <div class="flex items-center gap-3">
-                <img src="Logo Quran Overlay.png" alt="Logo" class="w-10 h-10 rounded-md object-cover" onerror="this.onerror=null; this.src='https://placehold.co/40x40/10b981/ffffff?text=Q'">
+                <img src="Logo Quran Overlay
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    .png" alt="Logo" class="w-10 h-10 rounded-md object-cover" onerror="this.onerror=null; this.src='https://placehold.co/40x40/10b981/ffffff?text=Q'">
                 <div>
                     <h1 class="font-bold text-gray-800 leading-tight text-sm">Qur'an Overlay</h1>
                     <p class="text-[10px] text-emerald-500 font-semibold">Mobile Video Studio</p>
@@ -481,7 +489,7 @@
             }
         } catch (err) {
             loadingOverlay.classList.add('hidden'); loadingOverlay.classList.remove('flex');
-            showMessage("Gagal memuat API! Periksa koneksi internet."); console.error(err);
+            showMessage(`Gagal: ${err.message}`, "error"); console.error(err);
         }
     });
 
