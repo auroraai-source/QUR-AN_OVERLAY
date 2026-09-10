@@ -362,44 +362,62 @@
         };
         const eQari = everyAyahQariMap[qariFolder] || 'Alafasy_128kbps';
 
-        // Fungsi Ambil Teks Super Ringan (Anti Failed to Fetch)
+        const quranComReciterMap = {
+            'ar.alafasy': 'Alafasy',
+            'ar.husary': 'Husary',
+            'ar.abdurrahmaansudais': 'Sudais'
+        };
+        const qcQari = quranComReciterMap[qariFolder] || 'Alafasy';
+
+        // Fungsi Ambil Teks Berlapis (Anti Blokir Jaringan HP Provider Seluler)
         async function fetchJsonSafely(url) {
-            const proxies = [ url, `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` ];
-            for (let u of proxies) {
+            const targets = [
+                url,
+                `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+            ];
+            for (let u of targets) {
                 try {
                     const res = await fetch(u, { mode: 'cors', cache: 'no-store' });
                     if (res.ok) return await res.json();
-                } catch (e) { /* Lanjut ke proxy jika failed */ }
+                } catch (e) { /* Coba jalur alternatif berikutnya */ }
             }
-            throw new Error("Jaringan HP memblokir API Al-Qur'an.");
+            throw new Error("Gagal terhubung ke server Al-Qur'an.");
         }
 
-        // Fungsi Sedot Audio Langsung
-        async function getAudioBufferSafely(url) {
-            try {
-                const res = await fetch(url, { mode: 'cors', cache: 'no-store' });
-                if (res.ok) {
-                    const buffer = await res.arrayBuffer();
-                    if (buffer.byteLength > 2000) return buffer;
-                }
-            } catch(e) {}
+        // Fungsi Sedot Audio Berlapis (Dual CDN + Proxy Fallback)
+        async function getAudioBufferSafely(candidates) {
+            const list = Array.isArray(candidates) ? candidates : [candidates];
+            const testUrls = [...list];
             
-            try { // Cadangan jika URL asli diblokir
-                const res2 = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, { mode: 'cors', cache: 'no-store' });
-                if (res2.ok) return await res2.arrayBuffer();
-            } catch(e) {}
+            // Tambahkan proxy penyelamat jika server langsung dibatasi
+            if (list[0]) {
+                testUrls.push(`https://corsproxy.io/?url=${encodeURIComponent(list[0])}`);
+                testUrls.push(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(list[0])}`);
+            }
 
-            throw new Error("Gagal menyedot MP3. Sinyal/Jaringan tidak stabil.");
+            for (let u of testUrls) {
+                try {
+                    const res = await fetch(u, { mode: 'cors', cache: 'no-store' });
+                    if (res.ok) {
+                        const buffer = await res.arrayBuffer();
+                        if (buffer.byteLength > 2000) return buffer;
+                    }
+                } catch(e) { /* Lanjut ke kandidat berikutnya */ }
+            }
+
+            throw new Error("Gagal menyedot audio. Sinyal HP tidak stabil.");
         }
         
         try {
             document.getElementById('loading-text').innerText = "Menarik Data Teks Al-Qur'an...";
             
-            // SEDOT 3 EDISI SEKALIGUS (ARAB, INDO, INGGRIS) DALAM 1 KALI TEMBAK (ANTI RATE-LIMIT)
             let dataArabAyahs = [];
             let dataIndoAyahs = [];
             let engAyahs = [];
 
+            // TAHAP 1: Coba Server Utama Al-Qur'an Cloud
             try {
                 const combinedData = await fetchJsonSafely(`https://api.alquran.cloud/v1/surah/${surahNum}/editions/quran-uthmani,id.indonesian,en.sahih`);
                 if (combinedData && combinedData.data && combinedData.data.length >= 3) {
@@ -408,15 +426,26 @@
                     engAyahs = combinedData.data[2].ayahs;
                 }
             } catch(eCombined) {
-                // Cadangan jika edisi gabungan diblokir
-                const dArab = await fetchJsonSafely(`https://api.alquran.cloud/v1/surah/${surahNum}/quran-uthmani`);
-                const dIndo = await fetchJsonSafely(`https://api.alquran.cloud/v1/surah/${surahNum}/id.indonesian`);
-                dataArabAyahs = dArab.data.ayahs;
-                dataIndoAyahs = dIndo.data.ayahs;
+                // TAHAP 2: JALUR DARURAT KHUSUS OPERATOR HP INDONESIA (Server equran.id Jakarta)
                 try {
-                    const dEng = await fetchJsonSafely(`https://api.alquran.cloud/v1/surah/${surahNum}/en.sahih`);
-                    engAyahs = dEng.data.ayahs || [];
-                } catch(e) {}
+                    const eqData = await fetchJsonSafely(`https://equran.id/api/v2/surat/${surahNum}`);
+                    if (eqData && eqData.data && eqData.data.ayat) {
+                        dataArabAyahs = eqData.data.ayat.map(a => ({ text: a.teksArab }));
+                        dataIndoAyahs = eqData.data.ayat.map(a => ({ text: a.teksIndonesia }));
+                    }
+                } catch(eEq) {
+                    // TAHAP 3: JALUR CADANGAN RESMI QURAN.COM CLOUDFLARE
+                    const qcomData = await fetchJsonSafely(`https://api.quran.com/api/v4/verses/by_chapter/${surahNum}?translations=33,20&fields=text_uthmani&per_page=300`);
+                    if (qcomData && qcomData.verses) {
+                        dataArabAyahs = qcomData.verses.map(v => ({ text: v.text_uthmani }));
+                        dataIndoAyahs = qcomData.verses.map(v => ({ text: (v.translations && v.translations[0]) ? v.translations[0].text.replace(/<[^>]*>/g, '') : '' }));
+                        engAyahs = qcomData.verses.map(v => ({ text: (v.translations && v.translations[1]) ? v.translations[1].text.replace(/<[^>]*>/g, '') : '' }));
+                    }
+                }
+            }
+
+            if (!dataArabAyahs || dataArabAyahs.length === 0) {
+                throw new Error("Gagal memuat teks surah. Silakan periksa koneksi data.");
             }
 
             const surahName = surahListMap[surahNum].name;
@@ -424,8 +453,11 @@
 
             if (withBismillah && surahNum !== 1 && surahNum !== 9 && start === 1) {
                 document.getElementById('loading-text').innerText = `Menyedot Audio Basmalah...`;
-                const eBasmalahUrl = `https://everyayah.com/data/${eQari}/001001.mp3`;
-                const bBuffer = await getAudioBufferSafely(eBasmalahUrl);
+                const bismillahCandidates = [
+                    `https://verses.quran.com/${qcQari}/mp3/001001.mp3`,
+                    `https://everyayah.com/data/${eQari}/001001.mp3`
+                ];
+                const bBuffer = await getAudioBufferSafely(bismillahCandidates);
                 const bBlobUrl = URL.createObjectURL(new Blob([bBuffer], { type: 'audio/mpeg' }));
                 
                 currentAyatData.push({
@@ -436,7 +468,7 @@
                     audioUrl: bBlobUrl, 
                     rawArrayBuffer: bBuffer 
                 });
-                await new Promise(r => setTimeout(r, 800)); // Jeda rileks
+                await new Promise(r => setTimeout(r, 400));
             }
 
             for (let i = start; i <= end; i++) {
@@ -449,9 +481,13 @@
 
                 const surahFormat = surahNum.toString().padStart(3, '0');
                 const ayahFormat = i.toString().padStart(3, '0');
-                const eAyahUrl = `https://everyayah.com/data/${eQari}/${surahFormat}${ayahFormat}.mp3`;
                 
-                const aBuffer = await getAudioBufferSafely(eAyahUrl);
+                const ayahCandidates = [
+                    `https://verses.quran.com/${qcQari}/mp3/${surahFormat}${ayahFormat}.mp3`,
+                    `https://everyayah.com/data/${eQari}/${surahFormat}${ayahFormat}.mp3`
+                ];
+                
+                const aBuffer = await getAudioBufferSafely(ayahCandidates);
                 const aBlobUrl = URL.createObjectURL(new Blob([aBuffer], { type: 'audio/mpeg' }));
 
                 currentAyatData.push({
@@ -462,7 +498,7 @@
                     audioUrl: aBlobUrl,
                     rawArrayBuffer: aBuffer
                 });
-                await new Promise(r => setTimeout(r, 800)); // Jeda rileks
+                await new Promise(r => setTimeout(r, 400));
             }
 
             loadingOverlay.classList.add('hidden'); loadingOverlay.classList.remove('flex');
